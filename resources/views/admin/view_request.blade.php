@@ -363,7 +363,7 @@
         <form method="POST" action="{{ route('updateRequest.admin', $requestData->id) }}" class="p-5">
             @csrf
             @method('PUT')
-
+            <input type="hidden" name="action" value="save" id="requestAction">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">Priority</label>
@@ -401,22 +401,33 @@
             </div>
 
             <div class="flex flex-wrap justify-end gap-2 mt-5">
-                @if($requestData->status === 'pending')
-                    <button name="action" value="reject" type="submit"
-                            class="px-4 py-2.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-sm font-semibold hover:bg-rose-100">
-                        Reject Request
-                    </button>
-                    <button name="action" value="approve" type="submit"
-                            class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700">
-                        Approve & Assign
-                    </button>
-                @else
-                    <button name="action" value="save" type="submit"
-                            class="px-5 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-indigo-700">
-                        Save Update
-                    </button>
-                @endif
-            </div>
+    @if($requestData->status === 'pending')
+
+        <button
+            type="submit"
+            onclick="document.getElementById('requestAction').value = 'reject'"
+            class="px-4 py-2.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-sm font-semibold hover:bg-rose-100">
+            Reject Request
+        </button>
+
+        <button
+            type="submit"
+            onclick="document.getElementById('requestAction').value = 'approve'"
+            class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700">
+            Approve & Assign
+        </button>
+
+    @else
+
+        <button
+            type="submit"
+            onclick="document.getElementById('requestAction').value = 'save'"
+            class="px-5 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-indigo-700">
+            Save Update
+        </button>
+
+    @endif
+</div>
         </form>
     </section>
 

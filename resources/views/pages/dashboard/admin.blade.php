@@ -305,23 +305,30 @@
     </div>
 
     {{-- Top Request Category --}}
-    <div class="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400">
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<div class="flex min-w-0 items-start gap-4 rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800 xl:col-span-2">
+    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
                     d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.966a1 1 0 00.95.69h4.17c.969 0 1.371 1.24.588 1.81l-3.373 2.45a1 1 0 00-.364 1.118l1.288 3.966c.3.922-.755 1.688-1.54 1.118l-3.373-2.45a1 1 0 00-1.176 0l-3.373 2.45c-.784.57-1.838-.196-1.539-1.118l1.288-3.966a1 1 0 00-.364-1.118L6.04 9.393c-.784-.57-.38-1.81.588-1.81h4.17a1 1 0 00.95-.69l1.3-3.966z"/>
             </svg>
-        </div>
-        <div class="min-w-0">
-            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Top Request</p>
-            <p id="dashboardTopCategory" class="mt-1 truncate text-lg font-semibold text-gray-900 dark:text-white">
-                {{ $topCategory ?? 'No data' }}
-            </p>
-            <p id="dashboardTopCategoryCount" class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                {{ $topCategoryCount ?? 0 }} requests
-            </p>
-        </div>
     </div>
+
+    <div class="min-w-0 flex-1">
+        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+            Top Request
+        </p>
+
+        <p id="dashboardTopCategory"
+           class="mt-1 text-base font-semibold leading-snug text-gray-900 dark:text-white break-words">
+            {{ $topCategory ?? 'No data' }}
+        </p>
+
+        <p id="dashboardTopCategoryCount"
+           class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            {{ $topCategoryCount ?? 0 }} requests each
+        </p>
+    </div>
+</div>
 
 </div>
 
@@ -1274,7 +1281,7 @@
       setText('dashboardTopCategory', data.topCategory);
       setText(
         'dashboardTopCategoryCount',
-        data.topCategoryCount + ' requests'
+        data.topCategoryCount + ' requests each'
       );
 
       // Report summary

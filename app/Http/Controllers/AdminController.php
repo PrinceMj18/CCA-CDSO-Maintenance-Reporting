@@ -173,15 +173,22 @@ if ($start && $end) {
             'rejected' => (int) ($statusRow->rejected ?? 0),
         ];
 
-        $categoryData = (clone $baseQuery)
-            ->select('category', DB::raw('COUNT(*) as total'))
-            ->groupBy('category')
-            ->orderByDesc('total')
-            ->pluck('total', 'category')
-            ->map(fn ($value) => (int) $value);
+$categoryData = (clone $baseQuery)
+    ->where('status', '!=', 'rejected')
+    ->select('category', DB::raw('COUNT(*) as total'))
+    ->groupBy('category')
+    ->orderByDesc('total')
+    ->pluck('total', 'category')
+    ->map(fn ($value) => (int) $value);
 
-        $topCategory = $categoryData->keys()->first() ?? 'No data';
         $topCategoryCount = (int) ($categoryData->first() ?? 0);
+
+$topCategory = $topCategoryCount > 0
+    ? $categoryData
+        ->filter(fn ($count) => $count === $topCategoryCount)
+        ->keys()
+        ->implode(', ')
+    : 'No data';
 
         // Most frequently reported problem locations for the same selected date range.
         // Keep each location paired with the categories reported there.
