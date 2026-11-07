@@ -12,6 +12,9 @@ use App\Http\Controllers\MaintenanceImageController;
 use App\Http\Controllers\ArchiveController;
 
 // AUTH
+Route::get('/', function () {
+    return redirect('/login');
+});
 Route::get('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/login', [AuthController::class, 'doLogin']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
