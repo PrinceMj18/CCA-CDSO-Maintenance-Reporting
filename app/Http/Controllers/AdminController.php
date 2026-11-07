@@ -266,95 +266,146 @@ private function formatDashboardDateRange($period, $start, $end)
 }
     
 
+
 private function buildDashboardTrend(string $period, $baseQuery, Carbon $now): array
 {
+    $driver = \Illuminate\Support\Facades\DB::connection()->getDriverName();
+
+    // Database-compatible date extraction.
+    $expressions = [
+        'year' => $driver === 'pgsql'
+            ? 'CAST(EXTRACT(YEAR FROM created_at) AS INTEGER)'
+            : 'YEAR(created_at)',
+
+        'hour' => $driver === 'pgsql'
+            ? 'CAST(EXTRACT(HOUR FROM created_at) AS INTEGER)'
+            : 'HOUR(created_at)',
+
+        'day' => $driver === 'pgsql'
+            ? 'CAST(EXTRACT(DAY FROM created_at) AS INTEGER)'
+            : 'DAY(created_at)',
+
+        'month' => $driver === 'pgsql'
+            ? 'CAST(EXTRACT(MONTH FROM created_at) AS INTEGER)'
+            : 'MONTH(created_at)',
+    ];
+
+    // Overall and 10-year trend.
     if ($period === 'overall' || $period === 'decade') {
+
         $rows = (clone $baseQuery)
-            ->selectRaw('EXTRACT(YEAR FROM created_at)::integer as period, COUNT(*) as total')
-            ->groupByRaw('EXTRACT(YEAR FROM created_at)')
+            ->selectRaw("{$expressions['year']} as period, COUNT(*) as total")
+            ->groupByRaw($expressions['year'])
             ->orderBy('period')
-            ->pluck('total', 'period');
+            ->get()
+            ->mapWithKeys(fn ($row) => [
+                (int) $row->period => (int) $row->total
+            ]);
 
         $years = $period === 'decade'
             ? range($now->year - 9, $now->year)
-            : $rows->keys()->map(fn ($year) => (int) $year)->values()->all();
+            : $rows->keys()->sort()->values()->all();
 
-        $labels = collect($years)->map(fn ($year) => (string) $year)->values();
-        $data = collect($years)->map(fn ($year) => (int) $rows->get($year, $rows->get((string) $year, 0)))->values();
-
-        return [$labels, $data];
+        return [
+            collect($years)->map(fn ($year) => (string) $year)->values(),
+            collect($years)->map(fn ($year) => (int) $rows->get($year, 0))->values(),
+        ];
     }
 
+    // Daily: group requests by hour.
     if ($period === 'daily') {
+
         $rows = (clone $baseQuery)
-            ->selectRaw('EXTRACT(HOUR FROM created_at)::integer as period, COUNT(*) as total')
-            ->groupByRaw('EXTRACT(HOUR FROM created_at)')
-            ->pluck('total', 'period');
+            ->selectRaw("{$expressions['hour']} as period, COUNT(*) as total")
+            ->groupByRaw($expressions['hour'])
+            ->get()
+            ->mapWithKeys(fn ($row) => [
+                (int) $row->period => (int) $row->total
+            ]);
 
         return [
             collect(range(0, 23))
                 ->map(fn ($hour) => Carbon::createFromTime($hour)->format('g A'))
                 ->values(),
+
             collect(range(0, 23))
-                ->map(fn ($hour) => (int) $rows->get($hour, $rows->get((string) $hour, 0)))
+                ->map(fn ($hour) => (int) $rows->get($hour, 0))
                 ->values(),
         ];
     }
 
+    // Weekly: group requests by date.
     if ($period === 'weekly') {
+
         $start = $now->copy()->startOfWeek();
 
         $rows = (clone $baseQuery)
-            ->selectRaw('created_at::date as period, COUNT(*) as total')
-            ->groupByRaw('created_at::date')
-            ->pluck('total', 'period');
+            ->selectRaw('DATE(created_at) as period, COUNT(*) as total')
+            ->groupByRaw('DATE(created_at)')
+            ->get()
+            ->mapWithKeys(fn ($row) => [
+                (string) $row->period => (int) $row->total
+            ]);
 
         return [
             collect(range(0, 6))
                 ->map(fn ($day) => $start->copy()->addDays($day)->format('D, M d'))
                 ->values(),
+
             collect(range(0, 6))
                 ->map(function ($day) use ($start, $rows) {
                     $date = $start->copy()->addDays($day)->toDateString();
 
-                    return (int) $rows->get($date, $rows->get(
-                        Carbon::parse($date)->toDateString(),
-                        0
-                    ));
+                    return (int) $rows->get($date, 0);
                 })
                 ->values(),
         ];
     }
 
+    // Monthly: group requests by day of the month.
     if ($period === 'monthly') {
+
         $rows = (clone $baseQuery)
-            ->selectRaw('EXTRACT(DAY FROM created_at)::integer as period, COUNT(*) as total')
-            ->groupByRaw('EXTRACT(DAY FROM created_at)')
-            ->pluck('total', 'period');
+            ->selectRaw("{$expressions['day']} as period, COUNT(*) as total")
+            ->groupByRaw($expressions['day'])
+            ->get()
+            ->mapWithKeys(fn ($row) => [
+                (int) $row->period => (int) $row->total
+            ]);
 
         return [
             collect(range(1, $now->daysInMonth))
                 ->map(fn ($day) => $now->copy()->day($day)->format('M d'))
                 ->values(),
+
             collect(range(1, $now->daysInMonth))
-                ->map(fn ($day) => (int) $rows->get($day, $rows->get((string) $day, 0)))
+                ->map(fn ($day) => (int) $rows->get($day, 0))
                 ->values(),
         ];
     }
 
+    // Quarterly: group requests by month.
     if ($period === 'quarterly') {
+
         $quarterStartMonth = intdiv($now->month - 1, 3) * 3 + 1;
-        $quarterStart = $now->copy()->month($quarterStartMonth)->startOfMonth();
+
+        $quarterStart = $now->copy()
+            ->month($quarterStartMonth)
+            ->startOfMonth();
 
         $rows = (clone $baseQuery)
-            ->selectRaw('EXTRACT(MONTH FROM created_at)::integer as period, COUNT(*) as total')
-            ->groupByRaw('EXTRACT(MONTH FROM created_at)')
-            ->pluck('total', 'period');
+            ->selectRaw("{$expressions['month']} as period, COUNT(*) as total")
+            ->groupByRaw($expressions['month'])
+            ->get()
+            ->mapWithKeys(fn ($row) => [
+                (int) $row->period => (int) $row->total
+            ]);
 
         return [
             collect(range(0, 2))
                 ->map(fn ($month) => $quarterStart->copy()->addMonths($month)->format('M Y'))
                 ->values(),
+
             collect(range(0, 2))
                 ->map(fn ($month) => (int) $rows->get(
                     $quarterStart->copy()->addMonths($month)->month,
@@ -366,19 +417,24 @@ private function buildDashboardTrend(string $period, $baseQuery, Carbon $now): a
 
     // Yearly: group requests by month.
     $rows = (clone $baseQuery)
-        ->selectRaw('EXTRACT(MONTH FROM created_at)::integer as period, COUNT(*) as total')
-        ->groupByRaw('EXTRACT(MONTH FROM created_at)')
-        ->pluck('total', 'period');
+        ->selectRaw("{$expressions['month']} as period, COUNT(*) as total")
+        ->groupByRaw($expressions['month'])
+        ->get()
+        ->mapWithKeys(fn ($row) => [
+            (int) $row->period => (int) $row->total
+        ]);
 
     return [
         collect(range(1, 12))
             ->map(fn ($month) => Carbon::create()->month($month)->format('M'))
             ->values(),
+
         collect(range(1, 12))
-            ->map(fn ($month) => (int) $rows->get($month, $rows->get((string) $month, 0)))
+            ->map(fn ($month) => (int) $rows->get($month, 0))
             ->values(),
     ];
 }
+
 
 
     public function createAccount()

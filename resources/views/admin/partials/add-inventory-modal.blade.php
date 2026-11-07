@@ -140,7 +140,8 @@
                         </button>
 
                         <button type="submit"
-                            class="w-full sm:w-auto px-5 py-3 sm:py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white transition">
+                            class="w-full sm:w-auto px-5 py-3 sm:py-2 rounded-xl bg-[#607844] text-xs font-semibold text-white
+           transition hover:bg-[#52693a]">
                             Save Material
                         </button>
 

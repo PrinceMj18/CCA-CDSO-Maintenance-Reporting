@@ -90,8 +90,8 @@
         <div class="flex w-full justify-end print:hidden sm:ml-auto sm:w-auto">
             <button type="button" onclick="printMaintenanceReport()"
                 class="inline-flex w-full sm:w-auto items-center justify-center px-4 py-2
-                       text-sm font-medium text-white bg-black rounded-lg
-                       hover:bg-gray-800 focus:outline-none focus:ring-2
+                       text-sm font-medium text-white bg-[#607844] rounded-lg
+                       hover:bg-[#475e2d] focus:outline-none focus:ring-2
                        focus:ring-gray-500 focus:ring-offset-2">
 
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor"
@@ -194,261 +194,202 @@
     </div>
 
   </div>
-  {{-- ========================================================= --}}
-  {{-- MAINTENANCE REQUESTS --}}
-  {{-- ========================================================= --}}
+{{-- ========================================================= --}}
+{{-- MAINTENANCE REQUESTS --}}
+{{-- ========================================================= --}}
 
-  <div class="flex items-center justify-between mt-6 mb-4">
-    <div>
-      <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200">
+<div class="mt-7 mb-5">
+    <h2 class="text-xl font-semibold tracking-tight text-gray-800 dark:text-white">
         Maintenance Requests
-      </h2>
-      <p class="text-sm text-gray-500 dark:text-gray-400">
+    </h2>
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
         Overview of all maintenance requests and their current status.
-      </p>
+    </p>
+</div>
+
+<div class="grid grid-cols-1 gap-4 mb-9 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+
+    {{-- Total Requests --}}
+    <div class="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+        </div>
+        <div class="min-w-0">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Requests</p>
+            <p id="dashboardTotal" class="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                {{ $total ?? 0 }}
+            </p>
+        </div>
     </div>
-  </div>
-
-
-  {{-- Maintenance Summary Cards --}}
-  <div class="grid gap-6 mb-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-
-    {{-- Total --}}
-    <div class="flex items-center p-5 bg-white rounded-lg shadow-sm dark:bg-gray-800">
-      <div class="p-3 mr-4 text-indigo-600 bg-indigo-100 rounded-full dark:text-indigo-200 dark:bg-indigo-900">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-      </div>
-
-      <div>
-        <p class="mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">
-          Total Requests
-        </p>
-
-        <p id="dashboardTotal" class="text-2xl font-bold text-gray-700 dark:text-gray-200">
-          {{ $total ?? 0 }}
-        </p>
-      </div>
-    </div>
-
 
     {{-- Pending --}}
-    <div class="flex items-center p-5 bg-white rounded-lg shadow-sm dark:bg-gray-800">
-      <div class="p-3 mr-4 text-yellow-600 bg-yellow-100 rounded-full dark:text-yellow-200 dark:bg-yellow-900">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      </div>
-
-      <div>
-        <p class="mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">
-          Pending
-        </p>
-
-        <p id="dashboardPending" class="text-2xl font-bold text-gray-700 dark:text-gray-200">
-          {{ $pending ?? 0 }}
-        </p>
-      </div>
+    <div class="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+        </div>
+        <div class="min-w-0">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Pending</p>
+            <p id="dashboardPending" class="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                {{ $pending ?? 0 }}
+            </p>
+        </div>
     </div>
-
 
     {{-- Approved --}}
-    <div class="flex items-center p-5 bg-white rounded-lg shadow-sm dark:bg-gray-800">
-      <div class="p-3 mr-4 text-purple-600 bg-purple-100 rounded-full dark:text-purple-200 dark:bg-purple-900">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 3c-2.236 0-4.33.614-6.118 1.984A11.955 11.955 0 003 12c0 2.236.614 4.33 1.984 6.118A11.955 11.955 0 0012 21c2.236 0 4.33-.614 6.118-1.984A11.955 11.955 0 0021 12c0-2.236-.614-4.33-1.382-4.016z" />
-        </svg>
-      </div>
-
-      <div>
-        <p class="mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">
-          Approved
-        </p>
-
-        <p id="dashboardApproved" class="text-2xl font-bold text-gray-700 dark:text-gray-200">
-          {{ $approved ?? 0 }}
-        </p>
-      </div>
+    <div class="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-900/20 dark:text-violet-400">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 3c-2.236 0-4.33.614-6.118 1.984A11.955 11.955 0 003 12c0 2.236.614 4.33 1.984 6.118A11.955 11.955 0 0012 21c2.236 0 4.33-.614 6.118-1.984A11.955 11.955 0 0021 12c0-2.236-.614-4.33-1.382-4.016z"/>
+            </svg>
+        </div>
+        <div class="min-w-0">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Approved</p>
+            <p id="dashboardApproved" class="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                {{ $approved ?? 0 }}
+            </p>
+        </div>
     </div>
-
 
     {{-- In Progress --}}
-    <div class="flex items-center p-5 bg-white rounded-lg shadow-sm dark:bg-gray-800">
-      <div class="p-3 mr-4 text-blue-600 bg-blue-100 rounded-full dark:text-blue-200 dark:bg-blue-900">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      </div>
-
-      <div>
-        <p class="mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">
-          In Progress
-        </p>
-
-        <p id="dashboardInProgress" class="text-2xl font-bold text-gray-700 dark:text-gray-200">
-          {{ $inProgress ?? 0 }}
-        </p>
-      </div>
+    <div class="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+        </div>
+        <div class="min-w-0">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">In Progress</p>
+            <p id="dashboardInProgress" class="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                {{ $inProgress ?? 0 }}
+            </p>
+        </div>
     </div>
-
 
     {{-- Completed --}}
-    <div class="flex items-center p-5 bg-white rounded-lg shadow-sm dark:bg-gray-800">
-      <div class="p-3 mr-4 text-green-600 bg-green-100 rounded-full dark:text-green-200 dark:bg-green-900">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-        </svg>
-      </div>
-
-      <div>
-        <p class="mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">
-          Completed
-        </p>
-
-        <p id="dashboardCompleted" class="text-2xl font-bold text-gray-700 dark:text-gray-200">
-          {{ $completed ?? 0 }}
-        </p>
-      </div>
+    <div class="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M5 13l4 4L19 7"/>
+            </svg>
+        </div>
+        <div class="min-w-0">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Completed</p>
+            <p id="dashboardCompleted" class="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                {{ $completed ?? 0 }}
+            </p>
+        </div>
     </div>
-
 
     {{-- Rejected --}}
-    <div class="flex items-center p-5 bg-white rounded-lg shadow-sm dark:bg-gray-800">
-      <div class="p-3 mr-4 text-red-600 bg-red-100 rounded-full dark:text-red-200 dark:bg-red-900">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </div>
-
-      <div>
-        <p class="mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">
-          Rejected
-        </p>
-
-        <p id="dashboardRejected" class="text-2xl font-bold text-gray-700 dark:text-gray-200">
-          {{ $rejected ?? 0 }}
-        </p>
-      </div>
+    <div class="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </div>
+        <div class="min-w-0">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Rejected</p>
+            <p id="dashboardRejected" class="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                {{ $rejected ?? 0 }}
+            </p>
+        </div>
     </div>
 
-
-    {{-- TOP REQUEST CATEGORY --}}
-    <div class="flex items-center p-5 bg-white rounded-lg shadow-sm dark:bg-gray-800">
-
-      <div class="p-3 mr-4 text-orange-600 bg-orange-100 rounded-full dark:text-orange-200 dark:bg-orange-900">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.966a1 1 0 00.95.69h4.17c.969 0 1.371 1.24.588 1.81l-3.373 2.45a1 1 0 00-.364 1.118l1.288 3.966c.3.922-.755 1.688-1.54 1.118l-3.373-2.45a1 1 0 00-1.176 0l-3.373 2.45c-.784.57-1.838-.196-1.539-1.118l1.288-3.966a1 1 0 00-.364-1.118L6.04 9.393c-.784-.57-.38-1.81.588-1.81h4.17a1 1 0 00.95-.69l1.3-3.966z" />
-        </svg>
-      </div>
-
-      <div class="min-w-0">
-        <p class="mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">
-          Top Request
-        </p>
-
-        <p id="dashboardTopCategory" class="text-lg font-bold text-gray-700 truncate dark:text-gray-200">
-          {{ $topCategory ?? 'No data' }}
-        </p>
-
-        <p id="dashboardTopCategoryCount" class="text-xs text-gray-500 dark:text-gray-400">
-          {{ $topCategoryCount ?? 0 }} requests
-        </p>
-      </div>
+    {{-- Top Request Category --}}
+    <div class="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                    d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.966a1 1 0 00.95.69h4.17c.969 0 1.371 1.24.588 1.81l-3.373 2.45a1 1 0 00-.364 1.118l1.288 3.966c.3.922-.755 1.688-1.54 1.118l-3.373-2.45a1 1 0 00-1.176 0l-3.373 2.45c-.784.57-1.838-.196-1.539-1.118l1.288-3.966a1 1 0 00-.364-1.118L6.04 9.393c-.784-.57-.38-1.81.588-1.81h4.17a1 1 0 00.95-.69l1.3-3.966z"/>
+            </svg>
+        </div>
+        <div class="min-w-0">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Top Request</p>
+            <p id="dashboardTopCategory" class="mt-1 truncate text-lg font-semibold text-gray-900 dark:text-white">
+                {{ $topCategory ?? 'No data' }}
+            </p>
+            <p id="dashboardTopCategoryCount" class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                {{ $topCategoryCount ?? 0 }} requests
+            </p>
+        </div>
     </div>
 
-  </div>
+</div>
 
 
-  {{-- ========================================================= --}}
-  {{-- INVENTORY --}}
-  {{-- ========================================================= --}}
+{{-- ========================================================= --}}
+{{-- INVENTORY OVERVIEW --}}
+{{-- ========================================================= --}}
 
-  <div class="flex items-center justify-between mb-4">
-    <div>
-      <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200">
+<div class="mb-5 border-t border-gray-200 pt-7 dark:border-gray-700">
+    <h2 class="text-xl font-semibold tracking-tight text-gray-800 dark:text-white">
         Inventory Overview
-      </h2>
+    </h2>
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        Monitor available materials and current stock levels.
+    </p>
+</div>
 
-      <p class="text-sm text-gray-500 dark:text-gray-400">
-        Monitor available materials and stock levels.
-      </p>
-    </div>
-  </div>
-
-
-  <div class="grid gap-6 mb-8 sm:grid-cols-2 lg:grid-cols-3">
+<div class="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-2 lg:grid-cols-3">
 
     {{-- Total Inventory --}}
-    <div class="flex items-center p-5 bg-white rounded-lg shadow-sm dark:bg-gray-800">
-      <div class="p-3 mr-4 text-indigo-600 bg-indigo-100 rounded-full dark:text-indigo-200 dark:bg-indigo-900">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-        </svg>
-      </div>
-
-      <div>
-        <p class="mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">
-          Total Inventory Items
-        </p>
-
-        <p class="text-2xl font-bold text-gray-700 dark:text-gray-200">
-          {{ $totalInventory ?? 0 }}
-        </p>
-      </div>
+    <div class="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>
+        </div>
+        <div>
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Inventory Items</p>
+            <p class="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                {{ $totalInventory ?? 0 }}
+            </p>
+        </div>
     </div>
-
 
     {{-- Low Stock --}}
-    <div class="flex items-center p-5 bg-white rounded-lg shadow-sm dark:bg-gray-800">
-      <div class="p-3 mr-4 text-orange-600 bg-orange-100 rounded-full dark:text-orange-200 dark:bg-orange-900">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z" />
-        </svg>
-      </div>
-
-      <div>
-        <p class="mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">
-          Low Stock
-        </p>
-
-        <p class="text-2xl font-bold text-gray-700 dark:text-gray-200">
-          {{ $low_stocks ?? 0 }}
-        </p>
-      </div>
+    <div class="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                    d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/>
+            </svg>
+        </div>
+        <div>
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Low Stock</p>
+            <p class="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                {{ $low_stocks ?? 0 }}
+            </p>
+        </div>
     </div>
-
 
     {{-- Out of Stock --}}
-    <div class="flex items-center p-5 bg-white rounded-lg shadow-sm dark:bg-gray-800">
-      <div class="p-3 mr-4 text-red-600 bg-red-100 rounded-full dark:text-red-200 dark:bg-red-900">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M18.364 5.636l-12.728 12.728M5.636 5.636l12.728 12.728" />
-        </svg>
-      </div>
-
-      <div>
-        <p class="mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">
-          Out of Stock
-        </p>
-
-        <p class="text-2xl font-bold text-gray-700 dark:text-gray-200">
-          {{ $outOfStock ?? 0 }}
-        </p>
-      </div>
+    <div class="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                    d="M18.364 5.636l-12.728 12.728M5.636 5.636l12.728 12.728"/>
+            </svg>
+        </div>
+        <div>
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Out of Stock</p>
+            <p class="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                {{ $outOfStock ?? 0 }}
+            </p>
+        </div>
     </div>
 
-  </div>
-
+</div>
 
   {{-- ========================================================= --}}
   {{-- DAILY REPORT --}}
@@ -614,7 +555,22 @@
 
   </div>
 
+{{-- RECURRING PROBLEM LOCATIONS --}}
+  <div class="print-section print-chart-section">
 
+    <div class="print-section-title">
+      RECURRING PROBLEM LOCATIONS
+    </div>
+
+    <p class="print-chart-description">
+      Top locations for the selected date range, paired with the categories reported at each location.
+    </p>
+
+    <div class="print-chart">
+      <img id="printLocationProblemImage" alt="Recurring Problem Locations">
+    </div>
+
+  </div>
   {{-- TOP CATEGORY --}}
   <div class="print-section">
 
@@ -689,22 +645,7 @@
   </div>
 
 
-  {{-- RECURRING PROBLEM LOCATIONS --}}
-  <div class="print-section print-chart-section">
-
-    <div class="print-section-title">
-      RECURRING PROBLEM LOCATIONS
-    </div>
-
-    <p class="print-chart-description">
-      Top locations for the selected date range, paired with the categories reported at each location.
-    </p>
-
-    <div class="print-chart">
-      <img id="printLocationProblemImage" alt="Recurring Problem Locations">
-    </div>
-
-  </div>
+  
 
 
   {{-- FOOTER --}}

@@ -268,8 +268,8 @@
                             <th class="px-4 py-3">Ticket No.</th>
                             <th class="px-4 py-3">Request</th>
                             <th class="px-4 py-3">Category</th>
-                            <th class="px-4 py-3">Priority</th>
-                            <th class="px-4 py-3">Location</th>
+                            <!-- <th class="px-4 py-3">Priority</th> -->
+                            <!-- <th class="px-4 py-3">Location</th> -->
                             <th class="px-4 py-3">Status</th>
                             <th class="px-4 py-3">Date</th>
                             <th class="px-4 py-3 text-right">Action</th>
@@ -330,20 +330,20 @@
                                                 </td>
 
                                                 <!-- PRIORITY -->
-                                                <td class="px-4 py-4 whitespace-nowrap">
+                                                <!-- <td class="px-4 py-4 whitespace-nowrap">
 
                                                     <span
                                                         class="inline-flex w-fit max-w-full px-2.5 py-1 text-[11px] font-semibold rounded-full {{ $priorityColors[$request->priority] ?? 'bg-gray-100 text-gray-700' }}">
 
                                                         {{ ucfirst($request->priority) }}
                                                     </span>
-                                                </td>
+                                                </td> -->
 
                                                 <!-- LOCATION -->
-                                                <td
+                                                <!-- <td
                                                     class="px-4 py-4 text-xs sm:text-sm text-gray-700 dark:text-gray-300 max-w-[160px] truncate">
                                                     {{ $request->location }}
-                                                </td>
+                                                </td> -->
 
                                                 <!-- STATUS -->
                                                 <td class="px-4 py-4 whitespace-nowrap">

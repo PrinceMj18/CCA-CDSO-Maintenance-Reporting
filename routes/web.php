@@ -12,9 +12,7 @@ use App\Http\Controllers\MaintenanceImageController;
 use App\Http\Controllers\ArchiveController;
 
 // AUTH
-Route::redirect('/', '/login');
 Route::get('/login', [AuthController::class, 'login'])->name('login');
-Route::get('/signup', function () { return redirect()->route('login'); })->name('signup');
 Route::post('/login', [AuthController::class, 'doLogin']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 

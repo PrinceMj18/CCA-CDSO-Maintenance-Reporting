@@ -108,6 +108,50 @@ document.addEventListener('DOMContentLoaded', function () {
     if (mobileQuery.addEventListener) mobileQuery.addEventListener('change', updateMobileTableMode);
     else mobileQuery.addListener(updateMobileTableMode);
 });
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function (event) {
+
+            // Prevent repeated submissions
+            if (form.dataset.submitting === 'true') {
+                event.preventDefault();
+                return;
+            }
+
+            // Allow native browser validation to finish first
+            if (!form.checkValidity()) {
+                return;
+            }
+
+            form.dataset.submitting = 'true';
+
+            const submitButtons = form.querySelectorAll(
+                'button[type="submit"], button:not([type]), input[type="submit"]'
+            );
+
+            submitButtons.forEach(button => {
+                button.disabled = true;
+                button.classList.add('opacity-60', 'cursor-not-allowed');
+
+                if (!button.dataset.originalText) {
+                    button.dataset.originalText = button.tagName === 'INPUT'
+                        ? button.value
+                        : button.innerHTML;
+                }
+
+                if (button.tagName === 'INPUT') {
+                    button.value = 'Processing...';
+                } else {
+                    button.innerHTML = 'Processing...';
+                }
+            });
+        });
+    });
+});
+
 </script>
+
 </body>
 </html>

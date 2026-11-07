@@ -208,7 +208,7 @@
                                             </td>
                                             <td class="px-5 py-4 text-right whitespace-nowrap">
                                                 <a href="{{ route('viewRequest.admin', $item->id) }}"
-                                                    class="inline-flex w-fit max-w-full px-2.5 py-1 rounded-lg bg-gray-900 hover:bg-indigo-700 text-white text-xs font-semibold transition">
+                                                    class="inline-flex min-h-9 w-fit max-w-full items-center rounded-lg bg-[#607844] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#52693a] focus:outline-none focus:ring-2 focus:ring-[#607844]/30">
                                                     View request
                                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

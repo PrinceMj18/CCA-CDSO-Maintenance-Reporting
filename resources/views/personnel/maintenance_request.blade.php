@@ -4,7 +4,7 @@
   @php
     $activeTab = $activeTab ?? 'all';
   @endphp
-  <div x-data="{ tab: '{{ $activeTab }}' }" class="mt-6 mb-6">
+  <div class="mt-6 mb-6">
 
     <!-- Page Header -->
     <div class="mb-5">
@@ -32,18 +32,18 @@
 
         @php
           $statusLabels = [
-            'all' => 'All Assigned',
-            'approved' => 'Approved',
-            'in_progress' => 'In Progress',
-            'completed' => 'Completed',
-          ];
+    'all' => 'Active Requests',
+    'approved' => 'Approved',
+    'in_progress' => 'In Progress',
+    'completed' => 'Completed',
+];
 
-          $statusCounts = [
-            'all' => $requests->count(),
-            'approved' => $requests->where('status', 'approved')->count(),
-            'in_progress' => $requests->where('status', 'in_progress')->count(),
-            'completed' => $requests->where('status', 'completed')->count(),
-          ];
+          $statusCounts = $statusCounts ?? [
+    'all' => $requests->total(),
+    'approved' => 0,
+    'in_progress' => 0,
+    'completed' => 0,
+];
         @endphp
 
         <form method="GET" action="{{ url()->current() }}" class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 max-w-xl">
@@ -147,12 +147,12 @@
           <!-- Filter Button -->
 
           <button type="submit" class="px-4 py-2
-                               bg-indigo-600
+                               bg-[#607844]
                                text-white
                                rounded-lg
                                text-sm
                                font-medium
-                               hover:bg-indigo-700
+                               bg-[#607844]
                                transition">
 
             Filter
@@ -238,7 +238,7 @@
 
             @foreach($requests as $request)
 
-              <tr x-show="tab === 'all' || tab === '{{ $request->status }}'" class="text-gray-700
+              <tr class="text-gray-700
                                                dark:text-gray-300
                                                hover:bg-gray-50
                                                dark:hover:bg-gray-700/40
@@ -311,60 +311,42 @@
 
 
                 <!-- Status -->
+<td class="px-5 py-4">
 
-                <td class="px-5 py-4">
+    @if($request->status === 'pending')
+        <span class="inline-flex w-fit max-w-full px-2.5 py-1
+                     text-xs font-semibold rounded-full
+                     bg-[#607844]/10 text-[#607844]
+                     dark:bg-[#607844]/20 dark:text-[#a9c18e]">
+            Pending
+        </span>
 
-                  @if($request->status === 'pending')
+    @elseif($request->status === 'approved')
+        <span class="inline-flex w-fit max-w-full px-2.5 py-1
+                     text-xs font-semibold rounded-full
+                     bg-[#607844]/10 text-[#607844]
+                     dark:bg-[#607844]/20 dark:text-[#a9c18e]">
+            Approved
+        </span>
 
-                    <span class="inline-flex w-fit max-w-full px-2.5 py-1
-                                                                     text-xs font-semibold
-                                                                     rounded-full
-                                                                     bg-yellow-100
-                                                                     text-yellow-700">
+    @elseif($request->status === 'in_progress')
+        <span class="inline-flex w-fit max-w-full px-2.5 py-1
+                     text-xs font-semibold rounded-full
+                     bg-[#607844]/10 text-[#607844]
+                     dark:bg-[#607844]/20 dark:text-[#a9c18e]">
+            In Progress
+        </span>
 
-                      Pending
+    @elseif($request->status === 'completed')
+        <span class="inline-flex w-fit max-w-full px-2.5 py-1
+                     text-xs font-semibold rounded-full
+                     bg-[#607844]/10 text-[#607844]
+                     dark:bg-[#607844]/20 dark:text-[#a9c18e]">
+            Completed
+        </span>
+    @endif
 
-                    </span>
-
-                  @elseif($request->status === 'approved')
-
-                    <span class="inline-flex w-fit max-w-full px-2.5 py-1
-                                                                     text-xs font-semibold
-                                                                     rounded-full
-                                                                     bg-blue-100
-                                                                     text-blue-700">
-
-                      Approved
-
-                    </span>
-
-                  @elseif($request->status === 'in_progress')
-
-                    <span class="inline-flex w-fit max-w-full px-2.5 py-1
-                                                                     text-xs font-semibold
-                                                                     rounded-full
-                                                                     bg-purple-100
-                                                                     text-purple-700">
-
-                      In Progress
-
-                    </span>
-
-                  @elseif($request->status === 'completed')
-
-                    <span class="inline-flex w-fit max-w-full px-2.5 py-1
-                                                                     text-xs font-semibold
-                                                                     rounded-full
-                                                                     bg-green-100
-                                                                     text-green-700">
-
-                      Completed
-
-                    </span>
-
-                  @endif
-
-                </td>
+</td>
 
 
                 <!-- Date -->
@@ -382,14 +364,7 @@
 
                 <td class="px-5 py-4">
 
-                  <a href="{{ route('viewRequest.personnel', $request->id) }}" class="inline-flex w-fit max-w-full px-2.5 py-1
-                                                       px-3 py-1.5
-                                                       text-xs font-semibold
-                                                       text-indigo-700
-                                                       bg-indigo-100
-                                                       rounded-full
-                                                       hover:bg-indigo-200
-                                                       transition">
+                  <a href="{{ route('viewRequest.personnel', $request->id) }}" class="inline-flex min-h-9 w-fit max-w-full items-center rounded-lg bg-[#607844] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#52693a] focus:outline-none focus:ring-2 focus:ring-[#607844]/30">
 
                     View
 

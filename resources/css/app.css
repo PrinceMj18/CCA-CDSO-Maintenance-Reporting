@@ -143,3 +143,33 @@ table { max-width: 100%; }
 }
 
 
+
+/* ==========================================
+   CDSO REQUEST STATUS COLORS
+   Unified minimalist sage green
+========================================== */
+
+:root {
+    --cdso-status-bg: #EAF0E5;
+    --cdso-status-text: #52693A;
+    --cdso-status-border: #DCE6D4;
+}
+
+/* Mobile and desktop status badges */
+[class~="bg-orange-100"],
+[class~="bg-yellow-100"],
+[class~="bg-blue-100"],
+[class~="bg-green-100"],
+[class~="bg-emerald-50"],
+[class~="bg-rose-50"] {
+    background-color: var(--cdso-status-bg) !important;
+}
+
+[class~="text-orange-700"],
+[class~="text-yellow-700"],
+[class~="text-blue-700"],
+[class~="text-green-700"],
+[class~="text-emerald-700"],
+[class~="text-rose-700"] {
+    color: var(--cdso-status-text) !important;
+}

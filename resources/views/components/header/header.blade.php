@@ -67,7 +67,7 @@
           class="absolute right-0 mt-3 w-[360px] max-w-[calc(100vw-2rem)] bg-white text-gray-800 rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-50"
           style="display:none;"
         >
-          <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <!-- <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <div>
               <p class="text-sm font-semibold">Notifications</p>
               <p id="notifications-unread-label" class="text-[11px] text-gray-500">{{ auth()->user()->unreadNotifications()->count() }} unread</p>
@@ -80,7 +80,7 @@
                 </button>
               </form>
             @endif
-          </div>
+          </div> -->
 
           <div class="max-h-[380px] overflow-y-auto divide-y divide-gray-100">
             @forelse(auth()->user()->notifications()->latest()->limit(8)->get() as $notification)

@@ -111,6 +111,9 @@
     <option value="Canteen">Canteen</option>
     <option value="Gymnasium">Gymnasium</option>
     <option value="Auditorium">Auditorium</option>
+    <option value="Guidance Office">Guidance Office</option>
+    <option value="SASO">SASO</option>
+    <option value="SASO">MISSO</option>
 
     <!-- Computer Laboratories -->
     <option value="CLAB1">CLAB1</option>
@@ -330,6 +333,34 @@
         {{ $message }}
     </p>
 @enderror
+</div>
+
+<!-- Other Location - Separate Grid Row -->
+<div id="other-location-container"
+     class="hidden md:col-span-2 space-y-1">
+
+    <label for="other_location"
+           class="text-sm font-medium text-gray-700 dark:text-gray-300">
+        Specify Location
+    </label>
+
+    <input
+        type="text"
+        id="other_location"
+        name="other_location"
+        value="{{ old('other_location') }}"
+        placeholder="Enter your specific location"
+        class="w-full rounded-lg border border-gray-300 dark:border-gray-600
+               bg-white dark:bg-gray-700 px-3 py-2 text-sm
+               text-gray-800 dark:text-white focus:ring-2
+               focus:ring-indigo-500 focus:outline-none"
+    >
+</div>
+                        @error('location')
+    <p class="mt-1 text-sm text-red-600" role="alert">
+        {{ $message }}
+    </p>
+@enderror
                     </div>
 
                     <!-- Category -->
@@ -429,4 +460,26 @@
         </form>
 
     </div>
+    <script>
+document.addEventListener('DOMContentLoaded', function () {
+    const locationSelect = document.getElementById('location');
+    const otherContainer = document.getElementById('other-location-container');
+    const otherInput = document.getElementById('other_location');
+
+    function toggleOtherLocation() {
+        const isOther = locationSelect.value === 'Other';
+
+        otherContainer.classList.toggle('hidden', !isOther);
+        otherInput.required = isOther;
+
+        if (!isOther) {
+            otherInput.value = '';
+        }
+    }
+
+    locationSelect.addEventListener('change', toggleOtherLocation);
+
+    toggleOtherLocation();
+});
+</script>
 @endsection

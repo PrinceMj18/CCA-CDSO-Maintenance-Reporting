@@ -100,7 +100,7 @@
 
         </a>
 
-        <button type="button" onclick="window.print()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-900 hover:bg-indigo-700 text-white text-sm font-semibold">
+        <button type="button" onclick="window.print()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#607844] hover:bg-[#3b551e] text-white text-sm font-semibold">
 
             Print Request
 

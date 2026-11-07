@@ -1,108 +1,284 @@
-@extends('layouts.apps')
 
-@section('content')
-    <section class="bg-gray-50 dark:bg-gray-900 min-h-screen py-3">
-        <a href="{{ route('acc_superadmin') }}"
-                    class="inline-flex items-center text-lg text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 mb-3">
+    @extends('layouts.apps')
 
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    @section('content')
 
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+    <div class="mx-auto w-full max-w-5xl px-5 py-6 sm:px-8 lg:px-10">
 
-                    </svg>
+        <!-- Page Header -->
+        <div class="mb-5">
+            <h1 class="text-2xl font-bold tracking-tight text-gray-800 dark:text-white">
+                Update User
+            </h1>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Manage account information, login credentials, and assigned system role.
+            </p>
+        </div>
 
-                    Back to Accounts
-                </a>
-        <div class="max-w-3xl mx-auto px-4">
+        <!-- Validation Errors -->
+        @if($errors->any())
+            <div role="alert"
+                class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
 
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-md">
+                <p class="mb-1 font-semibold">Please review the following:</p>
 
-                <!-- Header -->
-                <div class="px-6 py-4 border-b dark:border-gray-700">
-                    <h2 class="text-xl font-semibold text-gray-800 dark:text-white">
-                        Update User
+                <ul class="list-inside list-disc space-y-1">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        <!-- Update Form -->
+        <form
+            action="{{ route('update-account.admin', $user->id) }}"
+            method="POST"
+            x-data="{ showPassword: false, showConfirmation: false }"
+            class="w-full rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-7 lg:p-8">
+
+            @csrf
+            @method('PUT')
+
+            <!-- Form Heading -->
+            <div class="mb-5 flex items-start justify-between gap-3 border-b border-gray-100 pb-4 dark:border-gray-700">
+
+                <div>
+                    <h2 class="text-base font-semibold text-gray-800 dark:text-white">
+                        Account Information
                     </h2>
+
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Update the user's personal information and account settings.
+                    </p>
                 </div>
 
-                <!-- Content -->
-                <div class="p-6">
-                    <form action="{{ route('update_account', $user->id) }}" class="space-y-5" method="POST">
-                        @csrf
-                        @method('PUT')
-                        <!-- Product Name -->
-                        <div class="mb-2">
-                            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
-                                First Name
-                            </label>
-                            <input name="fname" type="text" value="{{ $user->fname }}"
-                                class="w-full rounded-lg border-gray-300 bg-gray-50 p-3 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                        </div>
+                <span class="shrink-0 rounded-full bg-[#607844]/10 px-3 py-1 text-xs font-semibold text-[#607844] dark:bg-[#607844]/20 dark:text-[#a9c18e]">
+                    Account Management
+                </span>
 
-                        <!-- Grid -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-2">
+            </div>
 
-                            <div class="mb-2">
-                                <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
-                                    Last Name
-                                </label>
-                                <input name="lname" type="text" value="{{ $user->lname }}"
-                                    class="w-full rounded-lg border-gray-300 bg-gray-50 p-3 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                            </div>
+            <div class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
 
-                            <div class="mb-2">
-                                <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
-                                    Email
-                                </label>
-                                <input name="email" type="text" value="{{ $user->email }}"
-                                    class="w-full rounded-lg border-gray-300 bg-gray-50 p-3 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                            </div>
+                <!-- First Name -->
+                <div>
+                    <label for="fname" class="mb-1.5 block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        First Name <span class="text-red-500">*</span>
+                    </label>
 
-                            <div class="mb-2">
-                                <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
-                                    Password
-                                </label>
-                                <input name="password" type="text" placeholder="Leave blank to keep current password"
-                                    class="w-full rounded-lg border-gray-300 bg-gray-50 p-3 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                            </div>
+                    <input
+                        id="fname"
+                        type="text"
+                        name="fname"
+                        value="{{ old('fname', $user->fname) }}"
+                        required
+                        maxlength="50"
+                        autocomplete="given-name"
+                        placeholder="Enter first name"
+                        class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#607844] focus:ring-2 focus:ring-[#607844]/20 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
 
-                            <div class="mb-2">
-                                <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
-                                    Role
-                                </label>
-                                <select name="role_id" class="w-full rounded-lg border-gray-300 bg-gray-50 p-3 
-        dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    @error('fname')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
 
-                                    @foreach($roles as $role)
-                                        <option value="{{ $role->id }}" {{ $user->role_id == $role->id ? 'selected' : '' }}>
-                                            {{ $role->name }}
-                                        </option>
-                                    @endforeach
+                <!-- Last Name -->
+                <div>
+                    <label for="lname" class="mb-1.5 block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        Last Name <span class="text-red-500">*</span>
+                    </label>
 
-                                </select>
-                            </div>
+                    <input
+                        id="lname"
+                        type="text"
+                        name="lname"
+                        value="{{ old('lname', $user->lname) }}"
+                        required
+                        maxlength="50"
+                        autocomplete="family-name"
+                        placeholder="Enter last name"
+                        class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#607844] focus:ring-2 focus:ring-[#607844]/20 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
 
-                        </div>
-                        <!-- Buttons -->
-                        <div class="flex justify-between items-center pt-4 border-t dark:border-gray-700">
+                    @error('lname')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
 
+                <!-- Email -->
+                <div class="sm:col-span-2">
+                    <label for="email" class="mb-1.5 block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        CCA Email Address <span class="text-red-500">*</span>
+                    </label>
 
-                            <button type="submit"
-                                class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg shadow-sm transition">
-                                Save Changes
-                            </button>
+                    <input
+                        id="email"
+                        type="email"
+                        name="email"
+                        value="{{ old('email', $user->email) }}"
+                        required
+                        maxlength="255"
+                        autocomplete="email"
+                        placeholder="username@cca.edu.ph"
+                        class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#607844] focus:ring-2 focus:ring-[#607844]/20 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
 
+                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                        Use an authorized @cca.edu.ph email address.
+                    </p>
 
+                    @error('email')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
 
-                        </div>
+                <!-- Role -->
+                <div>
+                    <label for="role_id" class="mb-1.5 block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        Account Role <span class="text-red-500">*</span>
+                    </label>
 
-                    </form>
-                    <button route="{{ route('acc_superadmin') }}"
-                        class="mt-5 dark:bg-gray-600 hover:bg-indigo-300 text-white px-6 py-2 rounded-lg shadow-sm transition">
-                        Cancel
-                    </button>
+                    <select
+                        id="role_id"
+                        name="role_id"
+                        required
+                        class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition focus:border-[#607844] focus:ring-2 focus:ring-[#607844]/20 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+
+                        <option value="">Select role</option>
+
+                        @foreach($roles as $role)
+                            <option value="{{ $role->id }}"
+                                @selected(old('role_id', $user->role_id) == $role->id)>
+                                {{ ucfirst($role->name) }}
+                            </option>
+                        @endforeach
+
+                    </select>
+
+                    @error('role_id')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Password -->
+                <div>
+                    <label for="password" class="mb-1.5 block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        New Password
+                    </label>
+
+                    <div class="relative">
+                        <input
+                            id="password"
+                            :type="showPassword ? 'text' : 'password'"
+                            type="password"
+                            name="password"
+                            minlength="12"
+                            maxlength="128"
+                            autocomplete="new-password"
+                            placeholder="Leave blank to keep current password"
+                            class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 pr-16 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#607844] focus:ring-2 focus:ring-[#607844]/20 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+
+                        <button
+                            type="button"
+                            @click="showPassword = !showPassword"
+                            :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                            class="absolute inset-y-0 right-3 text-xs font-semibold text-[#607844] hover:underline dark:text-[#a9c18e]">
+
+                            <span x-text="showPassword ? 'Hide' : 'Show'"></span>
+                        </button>
+                    </div>
+
+                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                        Optional. Use at least 12 characters when changing the password.
+                    </p>
+
+                    @error('password')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Confirm Password -->
+                <div class="sm:col-span-2">
+                    <label for="password_confirmation" class="mb-1.5 block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        Confirm New Password
+                    </label>
+
+                    <div class="relative">
+                        <input
+                            id="password_confirmation"
+                            :type="showConfirmation ? 'text' : 'password'"
+                            type="password"
+                            name="password_confirmation"
+                            minlength="12"
+                            maxlength="128"
+                            autocomplete="new-password"
+                            placeholder="Re-enter the new password"
+                            class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 pr-16 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#607844] focus:ring-2 focus:ring-[#607844]/20 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+
+                        <button
+                            type="button"
+                            @click="showConfirmation = !showConfirmation"
+                            :aria-label="showConfirmation ? 'Hide confirmation password' : 'Show confirmation password'"
+                            class="absolute inset-y-0 right-3 text-xs font-semibold text-[#607844] hover:underline dark:text-[#a9c18e]">
+
+                            <span x-text="showConfirmation ? 'Hide' : 'Show'"></span>
+                        </button>
+                    </div>
                 </div>
 
             </div>
-        </div>
-    </section>
-@endsection
+
+            <!-- Security Notice -->
+            <div class="mt-5 flex gap-3 rounded-lg border border-[#607844]/20 bg-[#607844]/5 p-3.5 dark:bg-[#607844]/10">
+
+                <div class="mt-0.5 shrink-0 text-[#607844] dark:text-[#a9c18e]">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 3 4.5 6v5.5c0 4.5 3.1 7.8 7.5 9.5 4.4-1.7 7.5-5 7.5-9.5V6L12 3Z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="m9 12 2 2 4-4"/>
+                    </svg>
+                </div>
+
+                <div>
+                    <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                        Account Security
+                    </p>
+
+                    <p class="mt-0.5 text-xs leading-relaxed text-gray-600 dark:text-gray-400">
+                        Changes are validated before being saved. Leave the password fields blank to retain the existing password. New passwords are securely hashed before storage.
+                    </p>
+                </div>
+
+            </div>
+
+            <!-- Actions -->
+            <div class="mt-6 flex flex-col-reverse gap-3 border-t border-gray-100 pt-5 dark:border-gray-700 sm:flex-row sm:justify-end">
+
+                <a
+                    href="{{ url()->previous() }}"
+                    class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-6 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
+
+                    Cancel
+
+                </a>
+
+                <button
+                    type="submit"
+                    class="inline-flex items-center justify-center rounded-lg bg-[#607844] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#52693a] focus:outline-none focus:ring-2 focus:ring-[#607844]/40 focus:ring-offset-2">
+
+                    Save Changes
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+    @endsection

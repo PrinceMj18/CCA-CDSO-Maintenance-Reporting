@@ -123,7 +123,7 @@
             <a href="{{ route('trackReq') }}" class="text-sm font-medium text-gray-500 hover:text-indigo-600">← Back to My
                 Requests</a>
             <button type="button" onclick="window.print()"
-                class="px-4 py-2.5 rounded-xl bg-gray-900 hover:bg-indigo-700 text-white text-sm font-semibold">
+                class="px-4 py-2.5 rounded-xl bg-[#607844] hover:bg-[#476129] text-white text-sm font-semibold">
                 Print Request
             </button>
         </div>

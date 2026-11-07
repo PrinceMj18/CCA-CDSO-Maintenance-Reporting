@@ -22,16 +22,17 @@ class UserController extends Controller
         $requests = MaintenanceRequest::where('user_id', $user->id)->get();
 
         // Count statuses (example)
+        $rejected = $requests->where('status', 'rejected')->count();
         $pending = $requests->where('status', 'pending')->count();
         $inProgress = $requests->where('status', 'in_progress')->count();
         $completed = $requests->where('status', 'completed')->count();
         $approved = $requests->where('status', 'approved')->count();
         $total = $requests->count();
 
-        return view('pages.dashboard.user', compact('requests', 'pending', 'inProgress', 'completed', 'approved', 'total'));
+        return view('pages.dashboard.user', compact('rejected', 'requests', 'pending', 'inProgress', 'completed', 'approved', 'total'));
     }
 
-function showForm()
+    function showForm()
     {
         return view('forms.form');
     }
@@ -39,26 +40,31 @@ function showForm()
     public function requestReport(Request $req)
     {
         $validated = $req->validate([
-    'title' => 'required|string|max:255',
-    'description' => 'nullable|string',
-    'location' => 'required|string|max:255',
-    'category' => 'required|string|max:100',
-    'images' => 'nullable|array|max:5',
-    'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
-], [
-    'title.required' => 'Please enter a title for your maintenance request.',
-    'title.max' => 'The title must not exceed 255 characters.',
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'location' => 'required|string|max:255',
+'other_location' => 'required_if:location,Other|nullable|string|max:255',
+            'category' => 'required|string|max:100',
+            'images' => 'nullable|array|max:5',
+            'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
+        ], [
+            'title.required' => 'Please enter a title for your maintenance request.',
+            'title.max' => 'The title must not exceed 255 characters.',
 
-    'location.required' => 'Please select the location of the issue.',
+            'location.required' => 'Please select the location of the issue.',
 
-    'category.required' => 'Please select a maintenance category.',
+            'category.required' => 'Please select a maintenance category.',
 
-    'images.max' => 'You can upload a maximum of 5 photos.',
-    'images.*.image' => 'Each uploaded file must be an image.',
-    'images.*.mimes' => 'Photos must be JPG, JPEG, PNG, or WebP.',
-    'images.*.max' => 'Each photo must not exceed 5 MB.',
-]);
-
+            'images.max' => 'You can upload a maximum of 5 photos.',
+            'images.*.image' => 'Each uploaded file must be an image.',
+            'images.*.mimes' => 'Photos must be JPG, JPEG, PNG, or WebP.',
+            'images.*.max' => 'Each photo must not exceed 5 MB.',
+            
+        ]);
+// Use the user-entered location when Other is selected.
+if ($validated['location'] === 'Other') {
+    $validated['location'] = $validated['other_location'];
+}
         // Create the maintenance request first
         // so Laravel/MySQL can generate its ID.
         $maintenanceRequest = MaintenanceRequest::create([

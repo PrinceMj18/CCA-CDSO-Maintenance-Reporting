@@ -61,48 +61,117 @@ class SuperAdminController extends Controller
     public function edit_account(Request $request, $id)
     {
         $user = User::findOrFail($id);
-        $roles = Role::all();
+        $roles = Role::whereIn('name', [
+    'user',
+    'personnel',
+    'admin'
+])->orderBy('name')->get();
 
         return view('superadmin.edit-accounts', compact('user', 'roles'));
     }
 
-    public function update_account(Request $request, $id)
-    {
-        $user = User::findOrFail($id);
-
-        $validated = $request->validate([
-            'fname' => 'required|string|max:50',
-            'lname' => 'required|string|max:50',
-            'email' => 'required|email|unique:users,email,' . $id,
-            'role_id' => 'required|exists:roles,id',
-            'password' => 'nullable|min:6'
-        ]);
-
-        $user->fname = $validated['fname'];
-        $user->lname = $validated['lname'];
-        $user->email = $validated['email'];
-        $user->role_id = $validated['role_id'];
-
-        if (!empty($validated['password'])) {
-            $user->password = Hash::make($validated['password']);
-        }
-
-        $user->save();
-        return redirect()->route('acc_superadmin');
-    }
-    public function delete_account($id)
+   
+public function update_account(Request $request, $id)
 {
-    $user = User::findOrFail($id);
+    // Only authorized super administrators can update accounts.
+    abort_unless(
+        auth()->check() &&
+        auth()->user()->role?->name === 'superadmin',
+        403
+    );
 
-    // Prevent deleting yourself
-    if (auth()->id() == $user->id) {
-        return redirect()->route('acc_superadmin')
-            ->with('error', 'You cannot archive your own account.');
+    $user = User::with('role')->findOrFail($id);
+
+    // Protect superadmin accounts from being modified through this form.
+    abort_if(
+        $user->role?->name === 'superadmin',
+        403,
+        'Super Admin accounts cannot be modified here.'
+    );
+
+    // Normalize email before validation.
+    $request->merge([
+        'email' => mb_strtolower(trim((string) $request->input('email'))),
+    ]);
+
+    $validated = $request->validate([
+        'fname' => [
+            'required',
+            'string',
+            'max:50',
+        ],
+
+        'lname' => [
+            'required',
+            'string',
+            'max:50',
+        ],
+
+        'email' => [
+            'required',
+            'email:rfc',
+            'ends_with:@cca.edu.ph',
+            'max:255',
+            \Illuminate\Validation\Rule::unique('users', 'email')->ignore($id),
+        ],
+
+        // Superadmin cannot be assigned through this form.
+        'role_id' => [
+            'required',
+            \Illuminate\Validation\Rule::exists('roles', 'id')
+                ->whereIn('name', ['user', 'personnel', 'admin']),
+        ],
+
+        // Password is optional when updating an account.
+        'password' => [
+            'nullable',
+            'confirmed',
+            \Illuminate\Validation\Rules\Password::min(12)
+                ->mixedCase()
+                ->numbers()
+                ->symbols(),
+        ],
+    ]);
+
+    $user->fname = $validated['fname'];
+    $user->lname = $validated['lname'];
+    $user->email = $validated['email'];
+    $user->role_id = $validated['role_id'];
+
+    if (!empty($validated['password'])) {
+        $user->password = Hash::make($validated['password']);
     }
+
+    $user->save();
+
+    return redirect()
+        ->route('acc_superadmin')
+        ->with('success', 'Account updated successfully.');
+}
+
+    
+public function delete_account($id)
+{
+    $user = User::with('role')->findOrFail($id);
+
+    // Prevent archiving your own account.
+    abort_if(
+        auth()->id() == $user->id,
+        403,
+        'You cannot archive your own account.'
+    );
+
+    // Protect all superadmin accounts.
+    abort_if(
+        $user->role?->name === 'superadmin',
+        403,
+        'Super Admin accounts cannot be archived.'
+    );
 
     $user->delete();
 
     return redirect()->route('acc_superadmin')
         ->with('success', 'Account archived successfully.');
 }
+
 }

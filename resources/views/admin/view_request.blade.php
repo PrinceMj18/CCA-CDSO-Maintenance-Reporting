@@ -151,24 +151,33 @@
 
 <div class="py-5 print-page">
     <!-- Top actions -->
-    <div class="flex items-center justify-between gap-3 mb-5 no-print">
-        <a href="{{ route('maintenanceRequest.admin') }}"
-           class="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-indigo-600">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-            </svg>
-            Back to Maintenance Requests
-        </a>
+<div class="flex items-center justify-between gap-3 mb-5 no-print">
+    <a href="{{ route('maintenanceRequest.admin') }}"
+       class="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-indigo-600">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Back to Maintenance Requests
+    </a>
+
+    <div class="flex items-center gap-2">
+        @if(in_array($requestData->status, ['completed', 'rejected'], true) && !$requestData->trashed())
+            <button type="button" id="openArchiveRequestDialog"
+                    class="inline-flex min-h-11 items-center justify-center rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700">
+                Archive Request
+            </button>
+        @endif
 
         <button type="button" onclick="window.print()"
-                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-900 hover:bg-indigo-700 text-white text-sm font-semibold transition">
+                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#607844] hover:bg-[#476129] text-white text-sm font-semibold transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                      d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2m-2-5H8v8h8v-8z"/>
+                      d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5h-2m-2-5H8v8h8v-8z"/>
             </svg>
             Print Request
         </button>
     </div>
+</div>
 
     @if(session('success'))
         <div class="no-print mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
@@ -208,32 +217,63 @@
         </div>
     </div>
 
-    @if(in_array($requestData->status, ['completed', 'rejected'], true) && !$requestData->trashed())
-        <div class="no-print mb-4 flex justify-end">
-            <button type="button" id="openArchiveRequestDialog" class="inline-flex min-h-11 items-center justify-center rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700">Archive Request</button>
-        </div>
-        <dialog id="archiveRequestDialog" class="w-[min(92vw,30rem)] rounded-2xl p-0 shadow-2xl backdrop:bg-slate-950/50">
-            <div class="p-6">
-                <div class="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-amber-100 text-amber-700"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.3 3.9 2.1 18a2 2 0 0 0 1.7 3h16.4a2 2 0 0 0 1.7-3l-8.2-14.1a2 2 0 0 0-3.4 0Z"/></svg></div>
-                <h2 class="text-lg font-bold text-gray-900">Archive maintenance request?</h2>
-                <p class="mt-2 text-sm text-gray-600">Archive {{ $requestData->ticket_number ?? ('#'.$requestData->id) }} — {{ $requestData->title }}?</p>
-                <p class="mt-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">The request will be hidden from active records but can be restored later. Its history will be preserved.</p>
-                <form id="archiveRequestForm" method="POST" action="{{ auth()->user()->role->name === 'superadmin' ? route('superadmin.requests.archive', $requestData->id) : route('admin.requests.archive', $requestData->id) }}" class="mt-6 flex justify-end gap-3">
-                    @csrf
-                    <button type="button" id="cancelArchiveRequest" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700">Cancel</button>
-                    <button type="submit" class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700">Archive request</button>
-                </form>
+    
+@if(in_array($requestData->status, ['completed', 'rejected'], true) && !$requestData->trashed())
+    <dialog id="archiveRequestDialog" class="w-[min(92vw,30rem)] rounded-2xl p-0 shadow-2xl backdrop:bg-slate-950/50">
+        <div class="p-6">
+            <div class="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.3 3.9 2.1 18a2 2 0 0 0 1.7 3h16.4a2 2 0 0 0 1.7-3l-8.2-14.1a2 2 0 0 0-3.4 0Z"/>
+                </svg>
             </div>
-        </dialog>
-        <script>
+
+            <h2 class="text-lg font-bold text-gray-900">Archive maintenance request?</h2>
+
+            <p class="mt-2 text-sm text-gray-600">
+                Archive {{ $requestData->ticket_number ?? ('#'.$requestData->id) }} — {{ $requestData->title }}?
+            </p>
+
+            <p class="mt-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+                The request will be hidden from active records but can be restored later. Its history will be preserved.
+            </p>
+
+            <form id="archiveRequestForm" method="POST"
+                action="{{ auth()->user()->role->name === 'superadmin' ? route('superadmin.requests.archive', $requestData->id) : route('admin.requests.archive', $requestData->id) }}"
+                class="mt-6 flex justify-end gap-3">
+
+                @csrf
+
+                <button type="button" id="cancelArchiveRequest"
+                    class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700">
+                    Cancel
+                </button>
+
+                <button type="submit"
+                    class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700">
+                    Archive request
+                </button>
+            </form>
+        </div>
+    </dialog>
+
+    <script>
         (() => {
             const dialog = document.getElementById('archiveRequestDialog');
-            document.getElementById('openArchiveRequestDialog').addEventListener('click', () => dialog.showModal());
-            document.getElementById('cancelArchiveRequest').addEventListener('click', () => dialog.close());
-            dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+            const openButton = document.getElementById('openArchiveRequestDialog');
+            const cancelButton = document.getElementById('cancelArchiveRequest');
+
+            if (!dialog || !openButton || !cancelButton) return;
+
+            openButton.addEventListener('click', () => dialog.showModal());
+            cancelButton.addEventListener('click', () => dialog.close());
+
+            dialog.addEventListener('click', event => {
+                if (event.target === dialog) dialog.close();
+            });
         })();
-        </script>
-    @endif
+    </script>
+@endif
+
 
     <!-- Summary -->
     <section class="print-card bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">

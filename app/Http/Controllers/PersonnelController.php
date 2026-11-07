@@ -63,6 +63,7 @@ class PersonnelController extends Controller
         ));
     }
 
+
 public function maintenanceRequest(Request $request)
 {
     $userId = auth()->id();
@@ -97,36 +98,76 @@ public function maintenanceRequest(Request $request)
         $query->where('category', $request->input('category'));
     }
 
-    // Pagination settings
-$perPage = (int) $request->input('per_page', 2);
+    $activeTab = $request->input('tab', 'all');
 
-if (!in_array($perPage, [2, 5, 8, 10, 20, 50], true)) {
-    $perPage = 2;
-}
+    $validTabs = ['all', 'approved', 'in_progress', 'completed'];
 
-$activeTab = $request->input('tab', 'all');
+    if (!in_array($activeTab, $validTabs, true)) {
+        $activeTab = 'all';
+    }
 
-$validTabs = ['all', 'approved', 'in_progress', 'completed'];
-
-if (!in_array($activeTab, $validTabs, true)) {
-    $activeTab = 'all';
-}
-
-if ($activeTab !== 'all') {
+    // Apply status filtering before pagination.
+    if ($activeTab === 'all') {
+    $query->whereIn('status', ['approved', 'in_progress']);
+} else {
     $query->where('status', $activeTab);
 }
 
-$requests = $query
-    ->latest()
-    ->paginate($perPage)
-    ->withQueryString();
+    // Always display 5 records per page.
+    $perPage = 5;
 
-return view('personnel.maintenance_request', compact(
-    'requests',
-    'activeTab',
-    'perPage'
-));
+    $requests = $query
+        ->latest()
+        ->paginate($perPage)
+        ->withQueryString();
+
+    // Get accurate counts independently of pagination.
+    $statusCounts = MaintenanceRequest::where('assigned_to', $userId)
+        ->whereIn('status', ['approved', 'in_progress', 'completed'])
+        ->when($search !== '', function ($q) use ($search) {
+            $like = '%' . addcslashes($search, '\\%_') . '%';
+
+            $q->where(function ($subQuery) use ($like) {
+                $subQuery->where('ticket_number', 'like', $like)
+                    ->orWhere('title', 'like', $like)
+                    ->orWhere('description', 'like', $like)
+                    ->orWhere('location', 'like', $like)
+                    ->orWhere('category', 'like', $like)
+                    ->orWhere('priority', 'like', $like)
+                    ->orWhereHas('user', function ($userQuery) use ($like) {
+                        $userQuery->where('fname', 'like', $like)
+                            ->orWhere('lname', 'like', $like)
+                            ->orWhere('email', 'like', $like);
+                    });
+            });
+        })
+        ->when($request->filled('category'), function ($q) use ($request) {
+            $q->where('category', $request->input('category'));
+        })
+        ->selectRaw("
+            COUNT(*) as all_count,
+            SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_count,
+            SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress_count,
+            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_count
+        ")
+        ->first();
+
+    $statusCounts = [
+    'all' => (int) $statusCounts->approved_count
+        + (int) $statusCounts->in_progress_count,
+    'approved' => (int) $statusCounts->approved_count,
+    'in_progress' => (int) $statusCounts->in_progress_count,
+    'completed' => (int) $statusCounts->completed_count,
+];
+
+    return view('personnel.maintenance_request', compact(
+        'requests',
+        'activeTab',
+        'perPage',
+        'statusCounts'
+    ));
 }
+
 
 public function viewRequest($id)
 {

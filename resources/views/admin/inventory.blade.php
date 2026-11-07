@@ -20,123 +20,84 @@
                 </div>
 
                 <button type="button" onclick="openInventoryModal()"
-                    class="inline-flex min-h-11 w-full flex-shrink-0 items-center justify-center gap-2 rounded-xl bg-teal-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-500 sm:w-auto sm:min-h-10 sm:px-4 sm:py-2">
+                    class="inline-flex min-h-11 w-full flex-shrink-0 items-center justify-center gap-2 rounded-xl bg-[#607844] text-xs font-semibold text-white
+           transition hover:bg-[#52693a] sm:w-auto sm:min-h-10 sm:px-4 sm:py-2">
                     <span class="text-xl leading-none" aria-hidden="true">+</span><span>Add Material</span>
                 </button>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-8">
+            
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-8">
 
-                <!-- Inventory -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm dark:shadow-none p-6 flex items-center gap-4">
+    <!-- Inventory Items -->
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex items-center gap-4">
+        <div class="w-11 h-11 shrink-0 rounded-lg bg-[#607844]/10 text-[#607844] flex items-center justify-center">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M3.75 7.5 12 3.75l8.25 3.75M3.75 7.5V16.5L12 20.25l8.25-3.75V7.5M3.75 7.5 12 11.25m8.25-3.75L12 11.25M12 11.25v9" />
+            </svg>
+        </div>
+        <div class="min-w-0">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Inventory Items</p>
+            <p class="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                {{ $total_items ?? 'Error' }}
+            </p>
+        </div>
+    </div>
 
-                    <div
-                        class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-800/70 flex items-center justify-center text-black-500">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg">
+    <!-- Low Stock -->
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex items-center gap-4">
+        <div class="w-11 h-11 shrink-0 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M12 9v3.75m0 3h.008v.008H12v-.008z" />
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M10.29 3.86 2.82 17a1.5 1.5 0 0 0 1.3 2.25h15.76a1.5 1.5 0 0 0 1.3-2.25L13.71 3.86a1.97 1.97 0 0 0-3.42 0z" />
+            </svg>
+        </div>
+        <div class="min-w-0">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Low Stock</p>
+            <p class="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                {{ $low_stocks ?? 'Error' }}
+            </p>
+        </div>
+    </div>
 
-                            <!-- Box -->
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M3.75 7.5 12 3.75l8.25 3.75M3.75 7.5V16.5L12 20.25l8.25-3.75V7.5M3.75 7.5 12 11.25m8.25-3.75L12 11.25M12 11.25v9" />
+    <!-- Out of Stock -->
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex items-center gap-4">
+        <div class="w-11 h-11 shrink-0 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center justify-center">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M3.75 7.5 12 3.75l8.25 3.75M3.75 7.5v9L12 20.25l8.25-3.75v-9M3.75 7.5 12 11.25m8.25-3.75L12 11.25m0 0v9" />
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="m8.5 14.5 7 3.5m0-3.5-7 3.5" />
+            </svg>
+        </div>
+        <div class="min-w-0">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Out of Stock</p>
+            <p class="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                {{ $out_of_stock ?? 'Error' }}
+            </p>
+        </div>
+    </div>
 
-                            <!-- Box details -->
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 5.46 16.5 9.21" />
+    <!-- Estimated Value -->
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex items-center gap-4">
+        <div class="w-11 h-11 shrink-0 rounded-lg bg-[#607844]/10 text-[#607844] flex items-center justify-center">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <text x="12" y="17" text-anchor="middle" font-size="16" font-weight="600">₱</text>
+            </svg>
+        </div>
+        <div class="min-w-0">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Estimated Value</p>
+            <p class="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                ₱{{ number_format($estimated_value, 2) }}
+            </p>
+        </div>
+    </div>
 
-                        </svg>
-                    </div>
+</div>
 
-                    <div>
-                        <p class="text-gray-500 dark:text-gray-400 text-sm">
-                            Inventory Items
-                        </p>
-
-                        <p class="text-3xl font-bold text-gray-900 dark:text-white">
-                            {{ $total_items ?? 'Error' }}
-                        </p>
-                    </div>
-
-                </div>
-
-                <!-- Low Stock -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm dark:shadow-none p-6 flex items-center gap-4">
-
-                    <div class="w-12 h-12 rounded-xl bg-amber-300 dark:bg-amber-400 flex items-center justify-center">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg">
-
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3h.008v.008H12V15.75z" />
-
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M10.29 3.86 2.82 17a1.5 1.5 0 0 0 1.3 2.25h15.76a1.5 1.5 0 0 0 1.3-2.25L13.71 3.86a1.97 1.97 0 0 0-3.42 0z" />
-
-                        </svg>
-                    </div>
-
-                    <div>
-                        <p class="text-black-500 dark:text-gray-400 text-sm">
-                            Low Stock
-                        </p>
-
-                        <p class="text-3xl font-bold text-gray-900 dark:text-white">
-                            {{ $low_stocks ?? 'Error'}}
-                        </p>
-                    </div>
-
-                </div>
-
-                <!-- Out of Stock -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm dark:shadow-none p-6 flex items-center gap-4">
-
-                    <div class="w-12 h-12 rounded-xl bg-red-200 dark:bg-red-900 flex items-center justify-center">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg">
-
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M3.75 7.5 12 3.75l8.25 3.75M3.75 7.5v9L12 20.25l8.25-3.75v-9M3.75 7.5 12 11.25m8.25-3.75L12 11.25m0 0v9" />
-
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m8.5 14.5 7 3.5m0-3.5-7 3.5" />
-
-                        </svg>
-                    </div>
-
-                    <div>
-                        <p class="text-gray-500 dark:text-gray-400 text-sm">
-                            Out of Stock
-                        </p>
-
-                        <p class="text-3xl font-bold text-gray-900 dark:text-white">
-                            {{ $out_of_stock ?? 'Error'}}
-                        </p>
-                    </div>
-
-                </div>
-
-                <!-- Estimated Value -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm dark:shadow-none p-6 flex items-center gap-4">
-
-                    <div class="w-12 h-12 rounded-xl bg-green-200 dark:bg-green-400 flex items-center justify-center">
-                        <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-
-                            <text x="12" y="17" text-anchor="middle" font-size="15" font-weight="700">
-                                ₱
-                            </text>
-
-                        </svg>
-                    </div>
-
-                    <div>
-                        <p class="text-gray-500 dark:text-gray-400 text-sm">
-                            Estimated Value
-                        </p>
-
-                        <p class="text-3xl font-bold text-gray-900 dark:text-white">
-                            ₱{{ number_format($estimated_value, 2) }}
-                        </p>
-                    </div>
-
-                </div>
-
-            </div>
 
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm dark:shadow-none mt-6 overflow-hidden">
 
@@ -194,12 +155,16 @@
                         </select>
 
                         <!-- Search -->
-                        <button type="submit" class="h-10 px-3 rounded-lg
-                       bg-teal-600 text-white text-sm font-medium
-                       hover:bg-teal-500 transition
-                       whitespace-nowrap">
-                            Search
-                        </button>
+                        
+<button
+    type="submit"
+    class="h-10 px-4 shrink-0 whitespace-nowrap rounded-lg
+           bg-[#607844] text-xs font-semibold text-white
+           transition hover:bg-[#52693a]
+           focus:outline-none focus:ring-2 focus:ring-[#607844]/30">
+    Search
+</button>
+
 
                         <!-- Reset -->
                         <a href="{{ route('inventory') }}" class="h-10 px-3 rounded-lg
@@ -284,9 +249,7 @@
 <td data-mobile-label="Action" class="px-4 py-3">
     <div class="flex flex-wrap items-center gap-2">
         <a href="{{ route('edit_inventory', $item->id) }}"
-           class="inline-flex min-h-9 items-center justify-center rounded-lg
-                  bg-gray-800 px-3 py-2 text-xs font-medium text-white
-                  transition hover:bg-gray-700">
+           class="inline-flex min-h-9 w-fit max-w-full items-center rounded-lg bg-[#607844] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#52693a] focus:outline-none focus:ring-2 focus:ring-[#607844]/30">
             Update
         </a>
 
