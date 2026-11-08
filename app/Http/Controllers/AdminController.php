@@ -456,6 +456,7 @@ private function buildDashboardTrend(string $period, $baseQuery, Carbon $now): a
         $validated = $request->validate([
             'fname' => 'required|string|max:50',
             'lname' => 'required|string|max:50',
+            'designation' => 'nullable|in:CDSO Head,Utility Supervisor,Supply Officer,Office Secretary,Maintenance,Utility,Gardener,Gardener/Utility,Team Leader',
             'email' => ['required', 'email', 'unique:users,email', 'regex:/^[A-Za-z0-9._%+-]+@cca\.edu\.ph$/'],
             'password' => 'required|string|min:8|confirmed',
             'role_id' => 'required|exists:roles,id',
@@ -463,10 +464,35 @@ private function buildDashboardTrend(string $period, $baseQuery, Carbon $now): a
 
         $allowedRoles = auth()->user()->role->name === 'superadmin' ? ['user', 'personnel', 'admin'] : ['user', 'personnel'];
         $role = Role::whereIn('name', $allowedRoles)->whereKey($validated['role_id'])->firstOrFail();
+// Require a designation for personnel accounts.
+if ($role->name === 'personnel' && empty($validated['designation'])) {
+    return back()
+        ->withInput()
+        ->withErrors([
+            'designation' => 'Please select the personnel designation.',
+        ]);
+}
+
+// Append designation to the last name without changing the database structure.
+$displayLastName = $validated['lname'];
+
+if ($role->name === 'personnel') {
+    $displayLastName .= ' (' . $validated['designation'] . ')';
+}
+
+// Ensure the combined value fits the existing last-name limit.
+if (mb_strlen($displayLastName) > 50) {
+    return back()
+        ->withInput()
+        ->withErrors([
+            'designation' => 'The last name and designation together must not exceed 50 characters.',
+        ]);
+}
+
 
         User::create([
             'fname' => $validated['fname'],
-            'lname' => $validated['lname'],
+            'lname' => $displayLastName,
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role_id' => $role->id,

@@ -167,34 +167,34 @@
     <p id="locationProblemEmpty" class="hidden py-8 text-center text-sm text-gray-500">No location data is available yet.</p>
   </div>
 
-  {{-- REPORT CHART --}}
-  <div class="min-w-0 p-6 mb-8 bg-white rounded-lg shadow-sm dark:bg-gray-800">
-
-    <div class="flex items-center justify-between mb-5">
-
-      <div>
-
-        <h4 id="reportChartTitle" class="font-semibold text-gray-800 dark:text-gray-200">
-          Overall Maintenance Requests
+  {{-- DYNAMIC MAINTENANCE REQUEST TREND --}}
+  <div class="min-w-0 mb-8 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+    <div class="flex flex-col gap-5 border-b border-gray-100 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6 dark:border-gray-700">
+      <div class="min-w-0">
+        <div class="mb-2 flex items-center gap-2">
+          <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#607844]/10 text-[#607844] dark:bg-[#607844]/20 dark:text-green-300">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 14l4-4 4 4 6-7"/></svg>
+          </span>
+          <span class="text-xs font-semibold uppercase tracking-wider text-[#607844] dark:text-green-300">Maintenance Analytics</span>
+        </div>
+        <h4 id="reportChartTitle" class="text-lg font-semibold text-gray-800 dark:text-gray-100">
+          Maintenance Request Trend
         </h4>
-
-        <p id="reportChartDescription" class="text-sm text-gray-500 dark:text-gray-400">
-          Number of maintenance requests over the selected period.
+        <p id="reportChartDescription" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Number of maintenance requests received over the selected period.
         </p>
-
       </div>
 
+      
     </div>
 
-
-    <div class="relative h-80">
-
-      <canvas id="reportChart"></canvas>
-
+    <div class="p-4 sm:p-6">
+      <div class="relative h-72 sm:h-80">
+        <canvas id="requestLineChart"></canvas>
+      </div>
     </div>
-
   </div>
-{{-- ========================================================= --}}
+
 {{-- MAINTENANCE REQUESTS --}}
 {{-- ========================================================= --}}
 
@@ -461,22 +461,6 @@
     </div>
 
 
-    {{-- LINE CHART --}}
-    <div class="min-w-0 p-6 bg-white rounded-lg shadow-sm dark:bg-gray-800 lg:col-span-2">
-
-      <h4 class="mb-1 font-semibold text-gray-800 dark:text-gray-200">
-        Maintenance Request Trend
-      </h4>
-
-      <p class="mb-5 text-sm text-gray-500 dark:text-gray-400">
-        Number of maintenance requests received over time.
-      </p>
-
-      <div class="relative h-80">
-        <canvas id="requestLineChart"></canvas>
-      </div>
-
-    </div>
 
   </div>
 
@@ -1119,8 +1103,8 @@
               label: 'Maintenance Requests',
               data: data.data || [],
 
-              borderColor: '#6366F1',
-              backgroundColor: 'rgba(99, 102, 241, 0.10)',
+              borderColor: '#607844',
+              backgroundColor: 'rgba(96, 120, 68, 0.13)',
 
               borderWidth: 3,
 
@@ -1128,12 +1112,13 @@
 
               tension: 0.4,
 
-              pointRadius: 4,
-              pointHoverRadius: 6,
+              pointRadius: (data.data || []).length === 1 ? 6 : 3,
+              pointHoverRadius: 7,
 
-              pointBackgroundColor: '#6366F1',
+              pointBackgroundColor: '#607844',
               pointBorderColor: '#ffffff',
-              pointBorderWidth: 2
+              pointBorderWidth: 2,
+              pointHitRadius: 12
             }]
           },
 
@@ -1165,6 +1150,7 @@
               },
 
               x: {
+                offset: true,
                 grid: {
                   display: false
                 },
@@ -1186,47 +1172,6 @@
                   label: function (context) {
                     return context.parsed.y + ' request(s)';
                   }
-                }
-              }
-            }
-          }
-        });
-      }
-
-      const reportCanvas = document.getElementById('reportChart');
-      if (reportCanvas) {
-        reportChart = new Chart(reportCanvas, {
-          type: 'bar',
-          data: {
-            labels: data.labels,
-            datasets: [{
-              label: 'Maintenance Requests',
-              data: data.data,
-              backgroundColor: '#6366F1',
-              borderRadius: 6,
-              borderSkipped: false
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-              y: {
-                beginAtZero: true,
-                ticks: { precision: 0 },
-                title: { display: true, text: 'Number of Requests' },
-                grid: { color: 'rgba(156, 163, 175, 0.15)' }
-              },
-              x: {
-                grid: { display: false },
-                title: { display: true, text: 'Period' }
-              }
-            },
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: context => context.parsed.y + ' request(s)'
                 }
               }
             }
@@ -1290,6 +1235,7 @@
       setText('reportCompleted', data.completed);
       setText('reportChartTitle', data.chartTitle);
       setText('reportChartDescription', data.description);
+      setText('reportTrendTotal', (data.data || []).reduce((sum, value) => sum + (Number(value) || 0), 0));
 
       renderCharts(data);
     }

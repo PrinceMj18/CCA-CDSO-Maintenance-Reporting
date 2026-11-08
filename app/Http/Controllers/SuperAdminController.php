@@ -121,7 +121,11 @@ public function update_account(Request $request, $id)
             \Illuminate\Validation\Rule::exists('roles', 'id')
                 ->whereIn('name', ['user', 'personnel', 'admin']),
         ],
-
+// Personnel designation (stored as part of last name).
+'designation' => [
+    'nullable',
+    'in:CDSO Head,Utility Supervisor,Supply Officer,Office Secretary,Maintenance,Utility,Gardener,Gardener/Utility,Team Leader',
+],
         // Password is optional when updating an account.
         'password' => [
             'nullable',
@@ -133,10 +137,39 @@ public function update_account(Request $request, $id)
         ],
     ]);
 
-    $user->fname = $validated['fname'];
-    $user->lname = $validated['lname'];
-    $user->email = $validated['email'];
-    $user->role_id = $validated['role_id'];
+  
+$selectedRole = Role::findOrFail($validated['role_id']);
+
+$lastName = trim($validated['lname']);
+
+// Append designation for personnel accounts.
+if ($selectedRole->name === 'personnel') {
+
+    if (empty($validated['designation'])) {
+        return back()
+            ->withInput()
+            ->withErrors([
+                'designation' => 'Please select a personnel designation.',
+            ]);
+    }
+
+    $lastName .= ' (' . $validated['designation'] . ')';
+}
+
+// Ensure the combined last name fits the database limit.
+if (mb_strlen($lastName) > 50) {
+    return back()
+        ->withInput()
+        ->withErrors([
+            'lname' => 'Last name and designation must not exceed 50 characters combined.',
+        ]);
+}
+
+$user->fname = $validated['fname'];
+$user->lname = $lastName;
+$user->email = $validated['email'];
+$user->role_id = $validated['role_id'];
+
 
     if (!empty($validated['password'])) {
         $user->password = Hash::make($validated['password']);

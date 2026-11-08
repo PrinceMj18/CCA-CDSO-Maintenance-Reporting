@@ -9,12 +9,12 @@
     @vite('resources/css/app.css')
 </head>
 
-<body class="min-h-screen bg-[#f5f7f3] antialiased">
+<body class="m-0 min-h-dvh w-full max-w-full overflow-x-clip bg-[#f7f8f5] antialiased">
 
-    <main class="flex min-h-screen flex-col md:flex-row">
+    <main class="flex min-h-dvh w-full min-w-0 max-w-full flex-col overflow-x-clip md:flex-row">
 
         <!-- LEFT BRANDING PANEL -->
-        <section class="relative flex min-h-[180px] w-full flex-col justify-between overflow-hidden bg-[#607844] px-7 py-6 text-white md:min-h-screen md:w-[42%] md:px-12 md:py-10">
+        <section class="relative box-border flex min-h-[250px] w-full min-w-0 max-w-full shrink-0 flex-col items-center justify-center gap-4 overflow-hidden bg-[#607844] px-5 py-8 text-white sm:min-h-[280px] md:min-h-dvh md:w-[40%] md:max-w-[40%] md:items-stretch md:justify-between md:gap-0 md:px-12 md:py-12 lg:px-16">
 
             <!-- Decorative background elements -->
             <div class="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full border border-white/10"></div>
@@ -22,38 +22,38 @@
             <div class="pointer-events-none absolute -bottom-32 -left-24 h-80 w-80 rounded-full bg-white/[0.04]"></div>
 
             <!-- Logo -->
-            <div class="relative z-10">
-                <img
-                    src="{{ asset('img/logo.png') }}"
-                    alt="City College of Angeles"
-                    class="mx-auto h-auto w-[105px] object-contain md:mx-0 md:w-[135px]"
-                >
-            </div>
+<div class="relative z-10 flex w-full justify-center">
+    <img
+        src="{{ asset('img/logo.png') }}"
+        alt="City College of Angeles"
+        class="block h-auto w-[175px] max-h-[135px] object-contain sm:w-[190px] sm:max-h-[150px] md:w-[280px] md:max-h-[220px]"
+    >
+</div>
 
             <!-- College identity -->
-            <div class="relative z-10 my-8 hidden md:block">
-                <div class="mb-5 h-1 w-12 rounded-full bg-white/80"></div>
+            <div class="relative z-10 my-auto hidden max-w-lg md:block">
+                <div class="mb-6 h-1 w-10 rounded-full bg-white/70"></div>
 
-                <p class="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-white/70">
+                <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/65">
                     Welcome to
                 </p>
 
-                <h1 class="max-w-md text-4xl font-bold leading-tight tracking-tight lg:text-[42px]">
+                <h1 class="max-w-md text-4xl font-semibold leading-[1.12] tracking-tight lg:text-[46px]">
                     City College<br>
                     of Angeles
                 </h1>
 
-                <p class="mt-5 text-base font-medium tracking-wide text-white/90">
+                <p class="mt-4 text-sm font-medium tracking-[0.12em] text-white/85">
                     Totalis Humanae
                 </p>
 
-                <p class="mt-8 max-w-sm text-sm leading-6 text-white/70">
+                <p class="mt-7 max-w-sm text-sm leading-6 text-white/70">
                     CDSO Maintenance Reporting System
                 </p>
             </div>
 
             <!-- Branding footer -->
-            <div class="relative z-10 hidden border-t border-white/20 pt-5 md:block">
+            <div class="relative z-10 hidden border-t border-white/15 pt-5 md:block">
                 <p class="text-xs tracking-wide text-white/60">
                     City College of Angeles
                 </p>
@@ -63,11 +63,11 @@
             </div>
 
             <!-- Compact mobile title -->
-            <div class="relative z-10 mt-2 text-center md:hidden">
-                <h1 class="text-lg font-semibold tracking-tight">
+            <div class="relative z-10 w-full max-w-sm text-center md:hidden">
+                <h1 class="text-base font-semibold tracking-tight sm:text-lg">
                     City College of Angeles
                 </h1>
-                <p class="mt-1 text-xs text-white/80">
+                <p class="mt-1.5 text-[11px] tracking-wide text-white/75 sm:text-xs">
                     CDSO Maintenance Reporting System
                 </p>
             </div>
@@ -76,16 +76,16 @@
 
 
         <!-- RIGHT LOGIN SECTION -->
-        <section class="flex min-w-0 flex-1 items-center justify-center px-5 py-9 sm:px-8 md:px-12 md:py-12">
+        <section class="box-border flex min-h-0 min-w-0 w-full max-w-full flex-1 items-center justify-center overflow-x-clip bg-[#f7f8f5] px-4 py-8 sm:px-8 sm:py-10 md:min-h-dvh md:w-[60%] md:max-w-[60%] md:px-10 md:py-12 lg:px-16">
 
-            <div class="w-full max-w-[440px]">
+            <div class="box-border w-full min-w-0 max-w-[420px]">
 
                 <!-- Login Card -->
-                <div class="rounded-2xl border border-[#e8ece4] bg-white px-6 py-8 shadow-[0_12px_40px_rgba(38,55,29,0.06)] sm:px-9 sm:py-10">
+                <div class="box-border w-full min-w-0 max-w-full rounded-2xl border border-[#e6eae2] bg-white px-5 py-7 shadow-[0_8px_30px_rgba(38,55,29,0.05)] sm:px-9 sm:py-9">
 
                     <!-- Heading -->
-                    <div class="mb-8">
-                        <div class="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#607844]/10 text-[#607844]">
+                    <div class="mb-6 sm:mb-7">
+                        <div class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#607844]/10 text-[#607844]">
                             <svg xmlns="http://www.w3.org/2000/svg"
                                 class="h-5 w-5"
                                 viewBox="0 0 24 24"
@@ -97,7 +97,7 @@
                             </svg>
                         </div>
 
-                        <h2 class="text-2xl font-bold tracking-tight text-[#263321] sm:text-[28px]">
+                        <h2 class="text-2xl font-semibold tracking-tight text-[#263321] sm:text-[27px]">
                             Welcome back
                         </h2>
 
@@ -128,7 +128,7 @@
 
 
                     <!-- Login Form -->
-                    <form id="loginForm" action="{{ url('/login') }}" method="POST" class="space-y-5">
+                    <form id="loginForm" action="{{ url('/login') }}" method="POST" class="space-y-4 sm:space-y-5">
                         @csrf
 
                         <!-- Email -->
@@ -158,7 +158,7 @@
                                     autocomplete="email"
                                     value="{{ old('email') }}"
                                     placeholder="Enter your email address"
-                                    class="block h-[52px] w-full rounded-lg border border-gray-200 bg-white pl-11 pr-4 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 hover:border-gray-300 focus:border-[#607844] focus:ring-4 focus:ring-[#607844]/10"
+                                    class="block h-[50px] w-full rounded-lg border border-gray-200 bg-white pl-11 pr-4 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 hover:border-gray-300 focus:border-[#607844] focus:ring-4 focus:ring-[#607844]/10"
                                 >
                             </div>
                         </div>
@@ -191,7 +191,7 @@
                                     required
                                     autocomplete="current-password"
                                     placeholder="Enter your password"
-                                    class="block h-[52px] w-full rounded-lg border border-gray-200 bg-white pl-11 pr-12 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 hover:border-gray-300 focus:border-[#607844] focus:ring-4 focus:ring-[#607844]/10"
+                                    class="block h-[50px] w-full rounded-lg border border-gray-200 bg-white pl-11 pr-12 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 hover:border-gray-300 focus:border-[#607844] focus:ring-4 focus:ring-[#607844]/10"
                                 >
 
                                 <button
@@ -240,7 +240,7 @@
                         <div class="pt-2">
                             <button
                                 type="submit"
-                                class="inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-lg bg-[#607844] px-5 text-sm font-semibold text-white shadow-sm transition duration-200 hover:bg-[#50683a] hover:shadow-md focus:outline-none focus:ring-4 focus:ring-[#607844]/20 disabled:cursor-not-allowed disabled:opacity-60"
+                                class="inline-flex h-[50px] w-full items-center justify-center gap-2 rounded-lg bg-[#607844] px-5 text-sm font-semibold text-white shadow-sm transition duration-200 hover:bg-[#50683a] focus:outline-none focus:ring-4 focus:ring-[#607844]/20 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 <span>Log in</span>
 
@@ -261,7 +261,7 @@
 
 
                 <!-- System Footer -->
-                <footer class="mt-6 flex flex-wrap items-center justify-center gap-x-2 gap-y-2 text-center">
+                <footer class="mt-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-2 text-center">
 
                     <span class="text-[11px] text-gray-400">
                         v1.75.86.88
@@ -293,7 +293,7 @@
 
                 </footer>
 
-                <p class="mt-5 text-center text-[11px] text-gray-400">
+                <p class="mt-3 text-center text-[11px] text-gray-400">
                     Authorized personnel only
                 </p>
 
@@ -358,7 +358,7 @@
                     `;
                 }
             });
-        });
+        })
     </script>
 
 </body>

@@ -12,79 +12,78 @@
     body {
         margin: 0 !important;
         padding: 0 !important;
-        width: 100% !important;
+        width: auto !important;
+        min-height: 0 !important;
         height: auto !important;
         overflow: visible !important;
         background: #fff !important;
         color: #111827 !important;
         font-family: Arial, Helvetica, sans-serif !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
 
-    /* Hide application navigation and screen-only controls */
+    /* Hide application navigation and controls. */
     aside,
     header,
     nav,
+    button,
     .no-print,
     .print-hidden,
-    button,
     .sidebar {
         display: none !important;
     }
 
-    /* Remove layout constraints that can create blank pages */
+    /* Remove shared layout sizing and positioning constraints. */
+    #app,
     main,
     main > div,
-    #app,
     body > div {
+        width: auto !important;
+        max-width: none !important;
         height: auto !important;
         min-height: 0 !important;
         max-height: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
         overflow: visible !important;
         transform: none !important;
+        position: static !important;
     }
 
-    main > div {
-        max-width: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-
+    /* Keep the report at a readable A4 content width. */
     .print-page {
         display: block !important;
+        position: static !important;
         width: 100% !important;
-        max-width: none !important;
-        margin: 0 !important;
+        max-width: 186mm !important;
+        margin: 0 auto !important;
         padding: 0 !important;
         overflow: visible !important;
-        break-before: auto !important;
-        page-break-before: auto !important;
+        box-sizing: border-box !important;
     }
 
-    /* Override Tailwind's print visibility utilities explicitly */
-    .print\:block {
+    .print-header {
         display: block !important;
-    }
-
-    .print\:flex {
-        display: flex !important;
-    }
-
-    .print\:hidden {
-        display: none !important;
     }
 
     .print-card {
+        width: 100% !important;
+        max-width: 100% !important;
         background: #fff !important;
         color: #111827 !important;
         border: 1px solid #d1d5db !important;
-        border-radius: 0 !important;
+        border-radius: 5px !important;
         box-shadow: none !important;
         overflow: visible !important;
+        box-sizing: border-box !important;
         break-inside: auto;
         page-break-inside: auto;
     }
 
-    .timeline-item {
+    .timeline-item,
+    tr,
+    img {
         break-inside: avoid;
         page-break-inside: avoid;
     }
@@ -94,45 +93,39 @@
         page-break-before: always;
     }
 
-    img {
+    /* Prevent attached photos from being stretched or distorted. */
+    .print-page img {
         max-width: 100% !important;
-        print-color-adjust: exact;
-        -webkit-print-color-adjust: exact;
+        height: auto !important;
+        object-fit: contain !important;
     }
 
-    a {
+    .print-page a {
         color: #111827 !important;
         text-decoration: none !important;
     }
-}.print-header {
-    display: none !important;
-}
 
-@media print {
-    .print-header {
+    .print-page table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+    .print-page th,
+    .print-page td {
+        overflow-wrap: anywhere;
+    }
+
+    .print-page .overflow-x-auto {
+        overflow: visible !important;
+    }
+
+    .print-page .hidden.print\\:block,
+    .print-page .hidden.print\\:flex {
         display: block !important;
     }
-}@media print {
-    /* Hide everything from the shared application layout */
-    body * {
-        visibility: hidden !important;
-    }
 
-    /* Show only the maintenance request record */
-    .print-page,
-    .print-page * {
-        visibility: visible !important;
-    }
-
-    /* Position the record at the top of the printed page */
-    .print-page {
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 100% !important;
-        max-width: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
+    .print-page .hidden.print\\:flex {
+        display: flex !important;
     }
 }
 </style>
@@ -332,17 +325,18 @@
                 <div class="mt-1 text-sm font-semibold text-gray-800 dark:text-gray-200">{{ $requestData->location }}</div>
             </div>
 
-            <div class="md:col-span-2">
-                <div class="text-[11px] uppercase tracking-wider font-bold text-gray-400">Request description</div>
-                <div class="mt-2 text-sm leading-6 text-gray-700 dark:text-gray-300 whitespace-pre-line">{{ $requestData->description }}</div>
-            </div>
+            <div class="text-sm leading-6 text-gray-700 dark:text-gray-300 whitespace-pre-line">
+    {{ filled($requestData->description)
+        ? $requestData->description
+        : 'No description provided by the requester.' }}
+</div>
             @if($requestData->images->isNotEmpty())
                 <div class="md:col-span-2">
                     <div class="text-[11px] uppercase tracking-wider font-bold text-gray-400">Attached photos</div>
-                    <div class="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div class="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3 print:grid-cols-3">
                         @foreach($requestData->images as $image)
                             <a href="{{ route('maintenance-images.show', $image->id) }}" target="_blank" rel="noopener" class="block">
-                                <img src="{{ route('maintenance-images.show', $image->id) }}" alt="Photo attached to {{ $requestData->ticket_number }}" class="w-full h-36 object-cover rounded-lg border border-gray-200" loading="lazy">
+                                <img src="{{ route('maintenance-images.show', $image->id) }}" alt="Photo attached to {{ $requestData->ticket_number }}" class="w-full h-36 object-cover rounded-lg border border-gray-200 print:h-auto print:aspect-auto print:object-contain" loading="lazy">
                             </a>
                         @endforeach
                     </div>
@@ -403,13 +397,19 @@
             <div class="flex flex-wrap justify-end gap-2 mt-5">
     @if($requestData->status === 'pending')
 
-        <button
-            type="submit"
-            onclick="document.getElementById('requestAction').value = 'reject'"
-            class="px-4 py-2.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-sm font-semibold hover:bg-rose-100">
-            Reject Request
-        </button>
+<button
+    type="submit"
+    onclick="document.getElementById('requestAction').value = 'reject'"
+    class="px-4 py-2.5 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm font-semibold hover:bg-red-100">
+    Reject Request
+</button>
 
+<button
+    type="submit"
+    onclick="document.getElementById('requestAction').value = 'save'"
+    class="px-4 py-2.5 rounded-xl border border-green-200 bg-green-50 text-green-700 text-sm font-semibold hover:bg-green-100">
+    Save Remarks
+</button>
         <button
             type="submit"
             onclick="document.getElementById('requestAction').value = 'approve'"

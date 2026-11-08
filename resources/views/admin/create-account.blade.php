@@ -155,6 +155,40 @@
                 @enderror
             </div>
 
+
+<!-- Personnel Designation -->
+<div id="personnelDesignationWrapper" class="hidden">
+    <label for="designation" class="mb-1.5 block text-sm font-semibold text-gray-700 dark:text-gray-300">
+        Personnel Designation
+    </label>
+
+    <select
+        id="designation"
+        name="designation"
+        class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition focus:border-[#607844] focus:ring-2 focus:ring-[#607844]/20 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+
+        <option value="">Select designation (Personnel only)</option>
+        <option value="CDSO Head" @selected(old('designation') === 'CDSO Head')>CDSO Head</option>
+        <option value="Utility Supervisor" @selected(old('designation') === 'Utility Supervisor')>Utility Supervisor</option>
+        <option value="Supply Officer" @selected(old('designation') === 'Supply Officer')>Supply Officer</option>
+        <option value="Office Secretary" @selected(old('designation') === 'Office Secretary')>Office Secretary</option>
+        <option value="Maintenance" @selected(old('designation') === 'Maintenance')>Maintenance</option>
+        <option value="Utility" @selected(old('designation') === 'Utility')>Utility</option>
+        <option value="Gardener" @selected(old('designation') === 'Gardener')>Gardener</option>
+        <option value="Gardener/Utility" @selected(old('designation') === 'Gardener/Utility')>Gardener/Utility</option>
+        <option value="Team Leader" @selected(old('designation') === 'Team Leader')>Team Leader</option>
+    </select>
+
+    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+        Used to distinguish personnel in maintenance assignments. Does not change their system permissions.
+    </p>
+
+    @error('designation')
+        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+    @enderror
+</div>
+
+
             <!-- Password -->
             <div>
                 <label for="password" class="mb-1.5 block text-sm font-semibold text-gray-700 dark:text-gray-300">
@@ -268,5 +302,31 @@
     </form>
 
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const roleSelect = document.getElementById('role_id');
+    const designationWrapper = document.getElementById('personnelDesignationWrapper');
+    const designationSelect = document.getElementById('designation');
 
+    function toggleDesignation() {
+        const selectedRole = roleSelect.options[roleSelect.selectedIndex]
+            ?.text.trim().toLowerCase();
+
+        const isPersonnel = selectedRole === 'personnel';
+
+        designationWrapper.classList.toggle('hidden', !isPersonnel);
+
+        designationSelect.disabled = !isPersonnel;
+
+        if (!isPersonnel) {
+            designationSelect.value = '';
+        }
+    }
+
+    roleSelect.addEventListener('change', toggleDesignation);
+
+    // Check initial selection, including Laravel old input
+    toggleDesignation();
+});
+</script>
 @endsection

@@ -51,6 +51,32 @@
                 <p class="text-sm text-gray-600 dark:text-gray-400">
                     This information will be reported to CDSO.
                 </p>
+                <div class="mt-3 flex items-start gap-3 rounded-lg border border-amber-200
+            bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20"
+     role="note">
+
+    <svg class="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400"
+         fill="none"
+         stroke="currentColor"
+         viewBox="0 0 24 24">
+        <path stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+    </svg>
+
+    <div>
+        <p class="text-sm font-semibold text-amber-800 dark:text-amber-300">
+            Important Reminder
+        </p>
+        <p class="mt-1 text-sm text-amber-700 dark:text-amber-400">
+            Please review your request details carefully before submitting.
+            Once submitted, your request cannot be edited. If you need to
+            correct or update any information, please use
+            the available communication channels to contact the CDSO office.
+        </p>
+    </div>
+</div>
             </div>
 
             <!-- FORM CARD -->
@@ -87,16 +113,44 @@
 
                     <!-- Location -->
                     <div class="space-y-1">
-                        <label for="specific_location" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <label for="location-search" class="text-sm font-medium text-gray-700 dark:text-gray-300">
                             Specific Location
                         </label>
 
-                        <select id="location" name="location" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600
-                                   bg-white dark:bg-gray-700
-                                   px-3 py-2 text-sm
-                                   text-gray-800 dark:text-white
-                                   placeholder-gray-400 dark:placeholder-gray-400
-                                   focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <div class="relative">
+                            <div class="flex gap-2">
+                                <input
+                                    type="text"
+                                    id="location-search"
+                                    required
+                                    autocomplete="off"
+                                    placeholder="Search or select a location"
+                                    value=""
+                                    class="min-w-0 flex-1 rounded-lg border border-gray-300 dark:border-gray-600
+                                           bg-white dark:bg-gray-700 px-3 py-2 text-sm
+                                           text-gray-800 dark:text-white
+                                           focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                >
+
+                                <button
+                                    type="button"
+                                    id="clear-location"
+                                    class="shrink-0 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium
+                                           text-gray-600 hover:bg-gray-100
+                                           dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                                >
+                                    Clear
+                                </button>
+                            </div>
+
+                            <div
+                                id="location-options"
+                                class="absolute left-0 right-0 top-full z-50 mt-1 hidden max-h-52 overflow-y-auto
+                                       rounded-lg border border-gray-200 bg-white py-1 shadow-lg
+                                       dark:border-gray-600 dark:bg-gray-800"
+                            ></div>
+
+                            <select id="location" name="location" class="hidden" aria-hidden="true" tabindex="-1">
                             <option value="" disabled {{ old('location') ? '' : 'selected' }}>
     Select a location
 </option>
@@ -113,7 +167,7 @@
     <option value="Auditorium">Auditorium</option>
     <option value="Guidance Office">Guidance Office</option>
     <option value="SASO">SASO</option>
-    <option value="SASO">MISSO</option>
+    <option value="MISSO">MISSO</option>
 
     <!-- Computer Laboratories -->
     <option value="CLAB1">CLAB1</option>
@@ -389,7 +443,10 @@
         'IT Equipment',
         'Facility',
         'Equipment / Technology',
-        'Air Conditioning'
+        'Air Conditioning',
+        'Borrowing',
+        'Materials / Supplies',
+        'General Service'
     ] as $category)
         <option value="{{ $category }}"
             {{ old('category') === $category ? 'selected' : '' }}>
@@ -406,16 +463,39 @@
                     </div>
 
                     <!-- Optional Request Images -->
-                    <div class="space-y-2 md:col-span-2">
-                        <label for="request-images" class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Attach photos <span class="font-normal text-gray-500">(optional)</span>
-                        </label>
-                        <input id="request-images" type="file" name="images[]" accept="image/jpeg,image/png,image/webp" multiple
-                            class="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-800 dark:text-white">
-                        <p class="text-xs text-gray-500 dark:text-gray-400">You may attach up to 5 photos (JPG, PNG, or WebP; max 5 MB each). You can submit without photos.</p>
-                        @error('images') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
-                        @error('images.*') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
-                    </div>
+<div class="space-y-3 md:col-span-2">
+    <label for="request-images" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+        Attach photos <span class="font-normal text-gray-500">(optional)</span>
+    </label>
+
+    <input
+    id="request-images"
+    type="file"
+    name="images[]"
+    accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+    multiple
+    class="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-800 dark:text-white"
+/>
+
+    <p class="text-xs text-gray-500 dark:text-gray-400">
+        Up to 5 photos, maximum 5 MB each. Accepted formats: JPG, PNG, WebP.
+        You can remove selected photos before submitting.
+    </p>
+
+    <div
+    id="image-preview-container"
+    class="flex w-full max-w-full gap-2 overflow-x-auto overflow-y-hidden pb-2"
+>
+</div>
+
+    @error('images')
+        <p class="text-sm text-red-600">{{ $message }}</p>
+    @enderror
+
+    @error('images.*')
+        <p class="text-sm text-red-600">{{ $message }}</p>
+    @enderror
+</div>
 
                     <!-- Description -->
                     <div class="space-y-1 md:col-span-2">
@@ -460,9 +540,54 @@
         </form>
 
     </div>
+    <!-- Confirm Image Removal Modal -->
+<div id="delete-image-modal"
+     class="fixed inset-0 z-[10000] hidden items-center justify-center bg-black/50 px-4">
+
+    <div class="w-full max-w-xs rounded-xl bg-white p-4 shadow-xl dark:bg-gray-800">
+
+        <div class="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+            <svg class="h-5 w-5 text-red-600 dark:text-red-400"
+                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4h6v3m-9 0h12"/>
+            </svg>
+        </div>
+
+        <h3 class="text-center text-base font-bold text-gray-800 dark:text-white">
+            Remove Photo?
+        </h3>
+
+        <p class="mt-2 text-center text-sm text-gray-600 dark:text-gray-300">
+            Are you sure you want to remove this uploaded photo?
+        </p>
+
+        <div class="mt-5 flex gap-2">
+            <button type="button"
+                    id="cancel-delete-image"
+                    class="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">
+                Cancel
+            </button>
+
+            <button type="button"
+                    id="confirm-delete-image"
+                    class="flex-1 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700">
+                Remove
+            </button>
+        </div>
+    </div>
+</div>
     <script>
+
+
 document.addEventListener('DOMContentLoaded', function () {
+
+    // SEARCHABLE LOCATION DROPDOWN
     const locationSelect = document.getElementById('location');
+    const locationSearch = document.getElementById('location-search');
+    const locationOptions = document.getElementById('location-options');
+    const clearLocationButton = document.getElementById('clear-location');
     const otherContainer = document.getElementById('other-location-container');
     const otherInput = document.getElementById('other_location');
 
@@ -477,9 +602,294 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    locationSelect.addEventListener('change', toggleOtherLocation);
+    function renderLocationOptions(search = '') {
+        locationOptions.innerHTML = '';
+
+        const filteredOptions = Array.from(locationSelect.options).filter(option => {
+            return option.value &&
+                option.textContent.toLowerCase().includes(search.toLowerCase());
+        });
+
+        if (filteredOptions.length === 0) {
+            const emptyMessage = document.createElement('div');
+            emptyMessage.className = 'px-3 py-2 text-sm text-gray-500 dark:text-gray-400';
+            emptyMessage.textContent = 'No locations found.';
+            locationOptions.appendChild(emptyMessage);
+        } else {
+            filteredOptions.forEach(option => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.textContent = option.textContent;
+                button.className = 'block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700';
+
+                button.addEventListener('click', function () {
+                    locationSelect.value = option.value;
+                    locationSearch.value = option.textContent;
+                    locationSearch.setCustomValidity('');
+                    locationOptions.classList.add('hidden');
+                    toggleOtherLocation();
+                });
+
+                locationOptions.appendChild(button);
+            });
+        }
+
+        locationOptions.classList.remove('hidden');
+    }
+
+    clearLocationButton.addEventListener('click', function () {
+        locationSelect.value = '';
+        locationSearch.value = '';
+        locationSearch.setCustomValidity('Please select a location from the dropdown.');
+        toggleOtherLocation();
+        renderLocationOptions('');
+        locationSearch.focus();
+    });
+
+    locationSearch.addEventListener('focus', function () {
+        renderLocationOptions(this.value);
+    });
+
+    locationSearch.addEventListener('input', function () {
+        locationSelect.value = '';
+        toggleOtherLocation();
+        locationSearch.setCustomValidity('Please select a location from the dropdown.');
+        renderLocationOptions(this.value);
+    });
+
+    document.addEventListener('click', function (event) {
+        if (!locationSearch.contains(event.target) &&
+            !locationOptions.contains(event.target)) {
+            locationOptions.classList.add('hidden');
+        }
+    });
+
+    // Restore the previously selected location after validation errors.
+    const oldLocation = @json(old('location'));
+    if (oldLocation) {
+        const selectedOption = Array.from(locationSelect.options)
+            .find(option => option.value === oldLocation);
+
+        if (selectedOption) {
+            locationSelect.value = oldLocation;
+            locationSearch.value = selectedOption.textContent;
+            locationSearch.setCustomValidity('');
+        }
+    }
+
+    // Prevent submission unless a valid dropdown option was selected.
+    document.querySelector('form').addEventListener('submit', function (event) {
+        if (!locationSelect.value) {
+            event.preventDefault();
+            locationSearch.setCustomValidity('Please select a location from the dropdown.');
+            locationSearch.reportValidity();
+            locationSearch.focus();
+        }
+    });
 
     toggleOtherLocation();
+
+
+    // IMAGE ERROR MODAL
+    const imageErrorModal = document.getElementById('image-error-modal');
+    const imageErrorMessage = document.getElementById('image-error-message');
+    const closeImageErrorModal = document.getElementById('close-image-error-modal');
+
+    function showImageError(message) {
+        imageErrorMessage.textContent = message;
+        imageErrorModal.classList.remove('hidden');
+        imageErrorModal.classList.add('flex');
+    }
+
+    function closeImageError() {
+        imageErrorModal.classList.add('hidden');
+        imageErrorModal.classList.remove('flex');
+    }
+
+    closeImageErrorModal.addEventListener('click', closeImageError);
+
+    imageErrorModal.addEventListener('click', function (event) {
+        if (event.target === imageErrorModal) {
+            closeImageError();
+        }
+    });
+
+
+    // IMAGE DELETE CONFIRMATION MODAL
+    const deleteImageModal = document.getElementById('delete-image-modal');
+    const cancelDeleteImage = document.getElementById('cancel-delete-image');
+    const confirmDeleteImage = document.getElementById('confirm-delete-image');
+
+    let imageToDelete = null;
+
+    function closeDeleteImageModal() {
+        deleteImageModal.classList.add('hidden');
+        deleteImageModal.classList.remove('flex');
+        imageToDelete = null;
+    }
+
+    cancelDeleteImage.addEventListener('click', closeDeleteImageModal);
+
+    deleteImageModal.addEventListener('click', function (event) {
+        if (event.target === deleteImageModal) {
+            closeDeleteImageModal();
+        }
+    });
+
+
+    // IMAGE PREVIEW AND VALIDATION
+    const imageInput = document.getElementById('request-images');
+    const previewContainer = document.getElementById('image-preview-container');
+
+    if (imageInput && previewContainer) {
+
+        let selectedImages = new DataTransfer();
+
+        imageInput.addEventListener('change', function () {
+
+            const newFiles = Array.from(this.files);
+            let hasError = false;
+
+            newFiles.forEach(file => {
+
+                if (selectedImages.files.length >= 5) {
+                    if (!hasError) {
+                        showImageError('You can only upload up to 5 photos.');
+                    }
+                    hasError = true;
+                    return;
+                }
+
+                if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                    if (!hasError) {
+                        showImageError('Only JPG, PNG, and WebP images are allowed.');
+                    }
+                    hasError = true;
+                    return;
+                }
+
+                if (file.size > 5 * 1024 * 1024) {
+                    if (!hasError) {
+                        showImageError(`${file.name} exceeds the 5 MB file size limit.`);
+                    }
+                    hasError = true;
+                    return;
+                }
+
+                selectedImages.items.add(file);
+            });
+
+            imageInput.files = selectedImages.files;
+            renderImagePreviews();
+        });
+
+
+        function renderImagePreviews() {
+
+            previewContainer.innerHTML = '';
+
+            Array.from(selectedImages.files).forEach((file, index) => {
+
+                const imageUrl = URL.createObjectURL(file);
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'w-24 shrink-0 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-600 sm:w-28';
+
+                const image = document.createElement('img');
+                image.src = imageUrl;
+                image.alt = file.name;
+                image.className = 'aspect-square h-24 w-full object-cover sm:h-28';
+
+                const details = document.createElement('div');
+                details.className = 'flex items-center justify-between gap-2 bg-gray-50 px-2 py-2 dark:bg-gray-700';
+
+                const fileName = document.createElement('span');
+                fileName.className = 'min-w-0 truncate text-xs text-gray-600 dark:text-gray-300';
+                fileName.textContent = file.name;
+
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.textContent = 'Remove';
+                removeButton.className = 'shrink-0 text-xs font-semibold text-red-600 hover:text-red-800';
+
+                // OPEN DELETE CONFIRMATION
+                removeButton.addEventListener('click', function () {
+
+                    imageToDelete = {
+                        index: index,
+                        imageUrl: imageUrl
+                    };
+
+                    deleteImageModal.classList.remove('hidden');
+                    deleteImageModal.classList.add('flex');
+                });
+
+                details.appendChild(fileName);
+                details.appendChild(removeButton);
+
+                wrapper.appendChild(image);
+                wrapper.appendChild(details);
+
+                previewContainer.appendChild(wrapper);
+            });
+        }
+
+
+        // CONFIRM IMAGE DELETION
+        confirmDeleteImage.addEventListener('click', function () {
+
+            if (imageToDelete === null) return;
+
+            const indexToDelete = imageToDelete.index;
+
+            const updatedImages = new DataTransfer();
+
+            Array.from(selectedImages.files).forEach((file, index) => {
+                if (index !== indexToDelete) {
+                    updatedImages.items.add(file);
+                }
+            });
+
+            selectedImages = updatedImages;
+            imageInput.files = selectedImages.files;
+
+            closeDeleteImageModal();
+            renderImagePreviews();
+        });
+    }
+
 });
+
 </script>
+
+<!-- Image Upload Error Modal -->
+<div id="image-error-modal"
+     class="fixed inset-0 z-[9999] hidden items-center justify-center bg-black/50 px-4">
+
+    <div class="w-full max-w-xs rounded-xl bg-white p-4 shadow-xl dark:bg-gray-800">
+
+        <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+            <svg class="h-6 w-6 text-red-600 dark:text-red-400"
+                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 9v4m0 4h.01M10.3 3.86L1.82 18a2 2 0 001.7 3h16.96a2 2 0 001.7-3L13.7 3.86a2 2 0 00-3.4 0z"/>
+            </svg>
+        </div>
+
+        <h3 class="text-center text-lg font-bold text-gray-800 dark:text-white">
+            Image Upload Error
+        </h3>
+
+        <p id="image-error-message"
+           class="mt-2 text-center text-sm text-gray-600 dark:text-gray-300">
+        </p>
+
+        <button type="button"
+                id="close-image-error-modal"
+                class="mt-5 w-full rounded-lg bg-[#607844] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#4e6337]">
+            Okay, Got it
+        </button>
+    </div>
+</div>
 @endsection
