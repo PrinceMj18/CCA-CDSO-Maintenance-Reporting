@@ -86,21 +86,32 @@
 
         </div>
 
-        <!-- PRINT REPORT -->
-        <div class="flex w-full justify-end print:hidden sm:ml-auto sm:w-auto">
-            <button type="button" onclick="printMaintenanceReport()"
-                class="inline-flex w-full sm:w-auto items-center justify-center px-4 py-2
-                       text-sm font-medium text-white bg-[#607844] rounded-lg
-                       hover:bg-[#475e2d] focus:outline-none focus:ring-2
-                       focus:ring-gray-500 focus:ring-offset-2">
-
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor"
+        <!-- MOBILE: DOWNLOAD PDF -->
+        <div class="w-full sm:hidden print:hidden">
+            <button type="button" id="downloadReportBtn" onclick="printMaintenanceReport(true)"
+                class="inline-flex w-full items-center justify-center rounded-lg bg-[#607844] px-4 py-3
+                       text-sm font-semibold text-white hover:bg-[#475e2d]
+                       focus:outline-none focus:ring-2 focus:ring-[#607844] focus:ring-offset-2">
+                <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor"
                      viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                          stroke-width="2"
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 3v12m0 0l-4-4m4 4l4-4M5 17v3h14v-3" />
+                </svg>
+                Download PDF
+            </button>
+        </div>
+
+        <!-- DESKTOP: PRINT -->
+        <div class="hidden justify-end print:hidden sm:ml-auto sm:flex">
+            <button type="button" onclick="printMaintenanceReport(false)"
+                class="inline-flex w-full sm:w-auto items-center justify-center rounded-lg bg-[#607844] px-4 py-2
+                       text-sm font-medium text-white hover:bg-[#475e2d]
+                       focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor"
+                     viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5h-2M6 14h12v8H6v-8z" />
                 </svg>
-
                 Print Report
             </button>
         </div>
@@ -660,6 +671,148 @@
     display: none;
   }
 
+  /* Styling used by the mobile PDF export. The report is rendered off-screen
+     so it does not replace or disturb the visible dashboard. */
+  #printReport.pdf-export-mode {
+    display: block !important;
+    position: absolute !important;
+    left: -10000px !important;
+    top: 0 !important;
+    width: 794px !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+  }
+
+  #printReport.pdf-export-mode .print-report-header {
+    border-bottom: 2px solid #111827;
+    padding-bottom: 10px;
+    margin-bottom: 14px;
+  }
+
+  #printReport.pdf-export-mode .print-company {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+  }
+
+  #printReport.pdf-export-mode .print-report-title {
+    margin-top: 3px;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  #printReport.pdf-export-mode .print-report-meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+    font-size: 12px;
+  }
+
+  #printReport.pdf-export-mode .print-section {
+    margin-bottom: 14px;
+    break-inside: avoid;
+  }
+
+  #printReport.pdf-export-mode .print-section-title {
+    font-size: 14px;
+    font-weight: 700;
+    padding-bottom: 5px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #9ca3af;
+    color: #111827;
+  }
+
+  #printReport.pdf-export-mode .print-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  #printReport.pdf-export-mode .print-summary-card {
+    border: 1px solid #d1d5db;
+    padding: 8px;
+    min-height: 0;
+    break-inside: avoid;
+  }
+
+  #printReport.pdf-export-mode .print-summary-card span,
+  #printReport.pdf-export-mode .print-highlight span {
+    display: block;
+    font-size: 11px;
+    color: #4b5563;
+    margin-bottom: 4px;
+  }
+
+  #printReport.pdf-export-mode .print-summary-card strong {
+    display: block;
+    font-size: 18px;
+    color: #111827;
+  }
+
+  #printReport.pdf-export-mode .print-highlight {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border: 1px solid #d1d5db;
+    break-inside: avoid;
+  }
+
+  #printReport.pdf-export-mode .print-highlight > div {
+    padding: 10px;
+  }
+
+  #printReport.pdf-export-mode .print-highlight > div + div {
+    border-left: 1px solid #d1d5db;
+  }
+
+  #printReport.pdf-export-mode .print-highlight strong {
+    display: block;
+    font-size: 17px;
+    color: #111827;
+  }
+
+  #printReport.pdf-export-mode .print-chart-description {
+    font-size: 11px;
+    color: #4b5563;
+    margin-bottom: 6px;
+  }
+
+  #printReport.pdf-export-mode .print-chart {
+    width: 100%;
+    text-align: center;
+  }
+
+  #printReport.pdf-export-mode .print-chart img {
+    display: block;
+    width: 100%;
+    max-height: 235px;
+    height: auto;
+    margin: 0 auto;
+    object-fit: contain;
+  }
+
+  #printReport.pdf-export-mode .print-report-footer {
+    margin-top: 12px;
+    padding-top: 7px;
+    border-top: 1px solid #9ca3af;
+    text-align: center;
+    font-size: 11px;
+    color: #6b7280;
+    break-inside: avoid;
+  }
+
+  #printReport.pdf-export-mode .print-section-title,
+  #printReport.pdf-export-mode .print-summary-card,
+  #printReport.pdf-export-mode .print-highlight,
+  #printReport.pdf-export-mode .print-chart {
+    page-break-inside: avoid;
+  }
+
   @media print {
     @page {
       size: A4 portrait;
@@ -840,6 +993,7 @@
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {
@@ -878,7 +1032,7 @@
       const element = document.getElementById(id);
       if (element) element.textContent = value;
     };
-    function printMaintenanceReport() {
+    function printMaintenanceReport(downloadPdf = false) {
       const data = window.currentDashboardAnalytics;
 
       if (!data) {
@@ -972,8 +1126,77 @@
             image.onerror = resolve;
           });
         })
-      ).then(() => {
-        window.print();
+      ).then(async () => {
+        if (!downloadPdf) {
+          window.print();
+          return;
+        }
+
+        const reportElement = document.getElementById('printReport');
+        const downloadButton = document.getElementById('downloadReportBtn');
+
+        if (!reportElement || typeof html2pdf === 'undefined') {
+          alert('PDF download is unavailable. Please check your internet connection and try again.');
+          return;
+        }
+
+        if (downloadButton) {
+          downloadButton.disabled = true;
+          downloadButton.textContent = 'Preparing PDF…';
+        }
+
+        reportElement.classList.add('pdf-export-mode');
+
+        try {
+          const safePeriod = String(data.period || 'overall')
+            .replace(/[^a-z0-9_-]/gi, '-');
+          const fileName = `CDSO-Maintenance-Report-${safePeriod}.pdf`;
+
+          await html2pdf()
+            .set({
+              margin: [10, 10, 10, 10],
+              filename: fileName,
+              image: { type: 'jpeg', quality: 0.98 },
+              html2canvas: {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                scrollX: 0,
+                scrollY: 0
+              },
+              jsPDF: {
+                unit: 'mm',
+                format: 'a4',
+                orientation: 'portrait'
+              },
+              pagebreak: { mode: ['css', 'legacy'] }
+            })
+            .from(reportElement)
+            .save();
+        } catch (error) {
+          console.error('PDF download failed:', error);
+          alert('The PDF could not be generated. Please try again.');
+        } finally {
+          reportElement.classList.remove('pdf-export-mode');
+          document.querySelectorAll('.print-temporarily-hidden').forEach(element => {
+            element.classList.remove('print-temporarily-hidden');
+          });
+
+          if (downloadButton) {
+            downloadButton.disabled = false;
+            downloadButton.innerHTML = `
+              <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor"
+                   viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 3v12m0 0l-4-4m4 4l4-4M5 17v3h14v-3" />
+              </svg>
+              Download PDF
+            `;
+          }
+        }
+      }).catch(error => {
+        console.error('Unable to prepare maintenance report:', error);
+        alert('The report could not be prepared. Please try again.');
       });
     }
 
