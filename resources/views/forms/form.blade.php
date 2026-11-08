@@ -86,30 +86,39 @@
 
                     <!-- Title -->
                     <div class="space-y-1">
-                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Title
-                        </label>
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <label for="title" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Title <span class="text-red-500">*</span>
+        </label>
 
-                        <input
-    type="text"
-    name="title"
-    required
-    maxlength="255"
-    value="{{ old('title') }}"
-    placeholder="Subject"
-    class="w-full rounded-lg border border-gray-300 dark:border-gray-600
-           bg-white dark:bg-gray-700 px-3 py-2 text-sm
-           text-gray-800 dark:text-white focus:ring-2
-           focus:ring-indigo-500 focus:outline-none
-           @error('title') border-red-500 @enderror"
->
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+            Examples: Leaking Faucet, Broken Light, Damaged Door
+        </p>
+    </div>
 
-@error('title')
-    <p class="mt-1 text-sm text-red-600" role="alert">
-        {{ $message }}
-    </p>
-@enderror
-                    </div>
+    <input
+        type="text"
+        id="title"
+        name="title"
+        required
+        maxlength="255"
+        value="{{ old('title') }}"
+        placeholder="Enter request title"
+        class="w-full rounded-lg border border-gray-300 dark:border-gray-600
+               bg-white dark:bg-gray-700 px-3 py-2 text-sm
+               text-gray-800 dark:text-white
+               placeholder:text-gray-400 dark:placeholder:text-gray-500
+               focus:ring-2 focus:ring-[#607844] focus:border-[#607844]
+               focus:outline-none transition
+               @error('title') border-red-500 @enderror"
+    >
+
+    @error('title')
+        <p class="mt-1 text-sm text-red-600" role="alert">
+            {{ $message }}
+        </p>
+    @enderror
+</div>
 
                     <!-- Location -->
                     <div class="space-y-1">
