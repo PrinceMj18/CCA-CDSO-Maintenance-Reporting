@@ -98,7 +98,7 @@
                         </div>
 
                         <h2 class="text-2xl font-semibold tracking-tight text-[#263321] sm:text-[27px]">
-                            Welcome back
+                            Log in
                         </h2>
 
                         <p class="mt-2 text-sm leading-6 text-gray-500">

@@ -738,10 +738,15 @@ $perPage = (int) $request->input('per_page', 5);
                     $newAssignedTo = $oldAssignedTo;
                 } elseif ($oldStatus === 'rejected') {
                     $newAssignedTo = null;
-                } elseif (in_array($oldStatus, ['approved', 'in_progress'], true)
-                    && !empty($validated['assigned_to'])) {
-                    // Reassignment is allowed while work is active; preserve status.
-                    $newAssignedTo = (int) $validated['assigned_to'];
+                } elseif (in_array($oldStatus, ['approved', 'in_progress'], true)) {
+                    if (filled($validated['assigned_to'] ?? null)) {
+                        // Reassignment is allowed while work is active; preserve status.
+                        $newAssignedTo = (int) $validated['assigned_to'];
+                    } else {
+                        // Clearing personnel pulls the request back to the pending queue.
+                        $newAssignedTo = null;
+                        $newStatus = 'pending';
+                    }
                 }
             }
 
@@ -800,9 +805,12 @@ $perPage = (int) $request->input('per_page', 5);
                     'action' => 'status_update',
                     // Keep the status event descriptive. The user's remark is
                     // logged once below as a separate comment event.
-                    'remarks' => $newStatus === 'approved'
-                        ? 'Request approved.'
-                        : 'Request rejected.',
+                    'remarks' => match ($newStatus) {
+                        'approved' => 'Request approved.',
+                        'rejected' => 'Request rejected.',
+                        'pending' => 'Request returned to Pending after personnel assignment was removed.',
+                        default => 'Request status updated.',
+                    },
                     'updated_by' => Auth::id(),
                 ]);
             }
@@ -841,24 +849,33 @@ $perPage = (int) $request->input('per_page', 5);
                 ]);
             }
 
-            if ($assignmentChanged && $newAssignedTo) {
-                $personnel = User::find($newAssignedTo);
+            if ($assignmentChanged) {
+                // Notify the newly assigned personnel, when there is one.
+                if ($newAssignedTo) {
+                    $newPersonnel = User::find($newAssignedTo);
 
-                if ($personnel) {
-                    $personnel->notify(new \App\Notifications\SystemNotification(
-                        'New maintenance assignment',
-                        "You have been assigned {$maintenance->ticket_number}: {$maintenance->title}.",
-                        'assignment',
-                        route('viewRequest.personnel', $maintenance->id)
-                    ));
+                    if ($newPersonnel) {
+                        $newPersonnel->notify(new \App\Notifications\SystemNotification(
+                            'New maintenance assignment',
+                            "You have been assigned {$maintenance->ticket_number}: {$maintenance->title}.",
+                            'assignment',
+                            route('viewRequest.personnel', $maintenance->id)
+                        ));
+                    }
                 }
 
+                // Notify the previous personnel whether the request was reassigned or pulled back.
                 if ($oldAssignedTo) {
                     $oldPersonnel = User::find($oldAssignedTo);
+
                     if ($oldPersonnel) {
+                        $wasPulledBack = !$newAssignedTo;
+
                         $oldPersonnel->notify(new \App\Notifications\SystemNotification(
-                            'Maintenance request reassigned',
-                            "{$maintenance->ticket_number}: {$maintenance->title} has been reassigned to another personnel.",
+                            $wasPulledBack ? 'Maintenance request pulled back' : 'Maintenance request reassigned',
+                            $wasPulledBack
+                                ? "{$maintenance->ticket_number}: {$maintenance->title} has been returned to Pending and is no longer assigned to you."
+                                : "{$maintenance->ticket_number}: {$maintenance->title} has been reassigned to another personnel.",
                             'assignment',
                             route('maintenanceRequest.personnel')
                         ));
@@ -892,6 +909,8 @@ $perPage = (int) $request->input('per_page', 5);
                 $message = 'No changes were needed; the request is already up to date.';
             } elseif ($assignmentChanged && $oldAssignedTo && $newAssignedTo) {
                 $message = 'Request reassigned successfully. The previous personnel no longer has it in their active list.';
+            } elseif ($assignmentChanged && $oldAssignedTo && !$newAssignedTo && $newStatus === 'pending') {
+                $message = 'Personnel removed successfully. The request has been returned to Pending.';
             } elseif ($statusChanged && $newStatus === 'approved') {
                 $message = 'Request approved and personnel assigned successfully.';
             } elseif ($statusChanged && $newStatus === 'rejected') {

@@ -144,33 +144,65 @@
 
 <div class="py-5 print-page">
     <!-- Top actions -->
-<div class="flex items-center justify-between gap-3 mb-5 no-print">
-    <a href="{{ route('maintenanceRequest.admin') }}"
-       class="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-indigo-600">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-        </svg>
-        Back to Maintenance Requests
-    </a>
 
-    <div class="flex items-center gap-2">
-        @if(in_array($requestData->status, ['completed', 'rejected'], true) && !$requestData->trashed())
-            <button type="button" id="openArchiveRequestDialog"
-                    class="inline-flex min-h-11 items-center justify-center rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700">
-                Archive Request
-            </button>
-        @endif
+<div class="no-print mb-5">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
-        <button type="button" onclick="window.print()"
-                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#607844] hover:bg-[#476129] text-white text-sm font-semibold transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                      d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5h-2m-2-5H8v8h8v-8z"/>
+        <!-- Back navigation -->
+        <a href="{{ route('maintenanceRequest.admin') }}"
+           class="inline-flex w-fit min-h-10 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-[#607844] dark:text-gray-300 dark:hover:bg-gray-700">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor"
+                 viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
-            Print Request
-        </button>
+            Back to Maintenance Requests
+        </a>
+
+        <!-- Action buttons -->
+        <div class="flex w-full items-center gap-2 sm:w-auto">
+
+            @if(in_array($requestData->status, ['completed', 'rejected'], true) && !$requestData->trashed())
+                <button type="button" id="openArchiveRequestDialog"
+                        class="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 sm:flex-none sm:text-sm">
+                    <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor"
+                         viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              stroke-width="1.8"
+                              d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6"/>
+                    </svg>
+                    Archive
+                </button>
+            @endif
+
+            <!-- Mobile: Download PDF -->
+            <button type="button" id="downloadRequestPdf"
+                    class="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-[#607844] px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#52693a] focus:outline-none focus:ring-2 focus:ring-[#607844]/30 focus:ring-offset-2 sm:hidden">
+                <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor"
+                     viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          stroke-width="1.8"
+                          d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v3h14v-3"/>
+                </svg>
+                <span>Download PDF</span>
+            </button>
+
+            <!-- Desktop: Print -->
+            <button type="button" onclick="window.print()"
+                    class="hidden min-h-10 items-center justify-center gap-2 rounded-lg bg-[#607844] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#52693a] focus:outline-none focus:ring-2 focus:ring-[#607844]/30 focus:ring-offset-2 sm:inline-flex">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor"
+                     viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          stroke-width="1.8"
+                          d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5h-2m-2-5H8v8h8v-8z"/>
+                </svg>
+                Print Request
+            </button>
+
+        </div>
     </div>
 </div>
+
 
     @if(session('success'))
         <div class="no-print mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
@@ -350,7 +382,7 @@
         <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
             <h2 class="text-sm font-bold text-gray-800 dark:text-white">Request Management</h2>
             <p class="mt-1 text-xs text-gray-500">
-                Admins approve/reject and manage assignments. Active requests may be reassigned; work progress and completion are handled by the current assignee.
+                Admins can reassign active requests at any time. Clear the selected personnel and save to pull back the request and return it to Pending.
             </p>
         </div>
 
@@ -360,20 +392,31 @@
             <input type="hidden" name="action" value="save" id="requestAction">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">Priority</label>
-                    <select name="priority"
-                            class="w-full rounded-xl border-gray-200 bg-gray-50 text-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                        @foreach(['low','medium','high'] as $priority)
-                            <option value="{{ $priority }}" @selected($requestData->priority === $priority)>{{ ucfirst($priority) }}</option>
-                        @endforeach
-                    </select>
-                </div>
+    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
+        Priority
+    </label>
+    <select name="priority"
+            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-800 focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        @foreach(['low','medium','high'] as $priority)
+            <option value="{{ $priority }}" @selected($requestData->priority === $priority)>
+                {{ ucfirst($priority) }}
+            </option>
+        @endforeach
+    </select>
+</div>
 
                 <div class="md:col-span-2">
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">Assign maintenance personnel</label>
-                    <select name="assigned_to"
-                            {{ in_array($requestData->status, ['rejected','completed']) ? 'disabled' : '' }}
-                            class="w-full rounded-xl border-gray-200 bg-gray-50 text-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white disabled:opacity-60">
+                    <label for="personnelSearch" class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
+                        Assign maintenance personnel
+                    </label>
+
+                    @php
+                        $personnelAssignmentDisabled = in_array($requestData->status, ['rejected', 'completed'], true);
+                    @endphp
+
+                    {{-- Keep the original form field so the controller receives assigned_to as before. --}}
+                    <select name="assigned_to" id="personnelSelect" class="hidden"
+                            {{ $personnelAssignmentDisabled ? 'disabled' : '' }}>
                         <option value="">Select personnel</option>
                         @foreach($personnels as $person)
                             <option value="{{ $person->id }}" @selected($currentAssignment?->id === $person->id)>
@@ -381,6 +424,47 @@
                             </option>
                         @endforeach
                     </select>
+
+                    <div class="relative" id="personnelPicker">
+                        <div class="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 dark:border-gray-600 dark:bg-gray-700 {{ $personnelAssignmentDisabled ? 'opacity-60' : '' }}">
+                            <svg class="h-4 w-4 shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <circle cx="11" cy="11" r="7" stroke-width="2"/>
+                                <path stroke-linecap="round" stroke-width="2" d="m16 16 4 4"/>
+                            </svg>
+                            <input
+                                type="text"
+                                id="personnelSearch"
+                                autocomplete="off"
+                                placeholder="Search by name or designation..."
+                                class="min-w-0 w-full border-0 bg-transparent py-3 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-0 dark:text-white"
+                                {{ $personnelAssignmentDisabled ? 'disabled' : '' }}
+                            >
+                            <button type="button" id="clearPersonnel"
+                                    class="shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-gray-500 hover:bg-gray-200 hover:text-gray-800 dark:text-gray-300 dark:hover:bg-gray-600"
+                                    {{ $personnelAssignmentDisabled ? 'disabled' : '' }}>
+                                Clear
+                            </button>
+                        </div>
+
+                        <div id="personnelOptions"
+                             class="absolute z-30 mt-1 hidden max-h-52 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-600 dark:bg-gray-800">
+                            @foreach($personnels as $person)
+                                <button
+                                    type="button"
+                                    class="personnel-option block w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                                    data-value="{{ $person->id }}"
+                                    data-search="{{ strtolower($person->fname.' '.$person->lname) }}"
+                                    data-label="{{ $person->fname }} {{ $person->lname }}"
+                                >
+                                    <span class="block font-medium">{{ $person->fname }} {{ $person->lname }}</span>
+                                </button>
+                            @endforeach
+                            <p id="noPersonnelResults" class="hidden px-4 py-3 text-sm text-gray-400">
+                                No matching personnel found.
+                            </p>
+                        </div>
+                    </div>
+                    <p class="mt-1.5 text-xs text-gray-400">Search by name or designation. Select another person to reassign, or choose Clear and save to return the request to Pending.</p>
                 </div>
 
                 <div class="md:col-span-3">
@@ -552,4 +636,153 @@
         <span>Printed {{ now()->format('M d, Y h:i A') }}</span>
     </div>
 </div>
+
+{{-- Client-side PDF generation is used only by the mobile Download PDF button. --}}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
+        referrerpolicy="no-referrer"></script>
+<script>
+    (() => {
+        const downloadButton = document.getElementById('downloadRequestPdf');
+        if (!downloadButton) return;
+
+        downloadButton.addEventListener('click', async () => {
+            const report = document.querySelector('.print-page');
+            if (!report) return;
+
+            if (typeof window.html2pdf !== 'function') {
+                alert('The PDF tool could not be loaded. Please check your internet connection and try again.');
+                return;
+            }
+
+            const originalLabel = downloadButton.innerHTML;
+            downloadButton.disabled = true;
+            downloadButton.classList.add('opacity-60', 'cursor-wait');
+            downloadButton.textContent = 'Preparing PDF...';
+
+            let temporaryWrapper;
+
+            try {
+                const clone = report.cloneNode(true);
+
+                // Exclude controls and dialogs from the downloaded report.
+                clone.querySelectorAll('.no-print, .print-hidden, dialog, script').forEach(element => element.remove());
+
+                // Show the report header and footer that are normally visible only when printing.
+                const printHeader = clone.querySelector('.print-header');
+                if (printHeader) printHeader.style.display = 'block';
+
+                const printFooter = clone.querySelector('.hidden.print\\:flex');
+                if (printFooter) printFooter.style.display = 'flex';
+
+                // Remove screen-only overflow and sizing constraints from report sections.
+                clone.querySelectorAll('.overflow-x-auto').forEach(element => {
+                    element.style.overflow = 'visible';
+                });
+
+                temporaryWrapper = document.createElement('div');
+                temporaryWrapper.style.cssText = 'position:fixed;left:-10000px;top:0;width:186mm;background:#ffffff;z-index:-1;';
+                clone.style.cssText += ';width:186mm;max-width:186mm;margin:0;padding:0;background:#ffffff;color:#111827;';
+                temporaryWrapper.appendChild(clone);
+                document.body.appendChild(temporaryWrapper);
+
+                const ticketNumber = @json($requestData->ticket_number ?? ('CDSO-' . $requestData->id));
+                await window.html2pdf().set({
+                    margin: [10, 10, 12, 10],
+                    filename: `${ticketNumber}-maintenance-request.pdf`,
+                    image: { type: 'jpeg', quality: 0.96 },
+                    html2canvas: {
+                        scale: 2,
+                        useCORS: true,
+                        backgroundColor: '#ffffff',
+                        scrollX: 0,
+                        scrollY: 0
+                    },
+                    jsPDF: {
+                        unit: 'mm',
+                        format: 'a4',
+                        orientation: 'portrait'
+                    },
+                    pagebreak: {
+                        mode: ['css', 'legacy'],
+                        avoid: ['.timeline-item', 'tr', 'img']
+                    }
+                }).from(clone).save();
+            } catch (error) {
+                console.error('PDF generation failed:', error);
+                alert('Unable to generate the PDF. Please try again.');
+            } finally {
+                temporaryWrapper?.remove();
+                downloadButton.disabled = false;
+                downloadButton.classList.remove('opacity-60', 'cursor-wait');
+                downloadButton.innerHTML = originalLabel;
+            }
+        });
+    })();
+</script>
+
+<script>
+    (() => {
+        const picker = document.getElementById('personnelPicker');
+        const searchInput = document.getElementById('personnelSearch');
+        const select = document.getElementById('personnelSelect');
+        const optionsPanel = document.getElementById('personnelOptions');
+        const clearButton = document.getElementById('clearPersonnel');
+        const noResults = document.getElementById('noPersonnelResults');
+
+        if (!picker || !searchInput || !select || !optionsPanel || !clearButton) return;
+
+        const options = Array.from(optionsPanel.querySelectorAll('.personnel-option'));
+
+        const selectedOption = select.options[select.selectedIndex];
+        if (selectedOption && selectedOption.value) {
+            searchInput.value = selectedOption.textContent.trim();
+        }
+
+        const closeOptions = () => optionsPanel.classList.add('hidden');
+        const openOptions = () => optionsPanel.classList.remove('hidden');
+
+        const filterOptions = () => {
+            const query = searchInput.value.trim().toLowerCase();
+            let visibleCount = 0;
+
+            options.forEach(option => {
+                const matches = (option.dataset.search || '').includes(query);
+                option.classList.toggle('hidden', !matches);
+                if (matches) visibleCount++;
+            });
+
+            noResults.classList.toggle('hidden', visibleCount !== 0);
+            openOptions();
+        };
+
+        searchInput.addEventListener('focus', filterOptions);
+        searchInput.addEventListener('input', filterOptions);
+
+        options.forEach(option => {
+            option.addEventListener('click', () => {
+                select.value = option.dataset.value;
+                searchInput.value = option.dataset.label;
+                closeOptions();
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        });
+
+        clearButton.addEventListener('click', () => {
+            select.value = '';
+            searchInput.value = '';
+            filterOptions();
+            searchInput.focus();
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
+        document.addEventListener('click', event => {
+            if (!picker.contains(event.target)) closeOptions();
+        });
+
+        searchInput.addEventListener('keydown', event => {
+            if (event.key === 'Escape') closeOptions();
+        });
+    })();
+</script>
+
 @endsection

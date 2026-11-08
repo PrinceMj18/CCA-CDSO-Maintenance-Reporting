@@ -1,92 +1,9 @@
 @extends('layouts.apps')
 
-
-
 @section('content')
 
-<style>
-
-@media print {
-
-    @page { size: A4 portrait; margin: 12mm; }
-
-    html, body { margin:0!important; padding:0!important; background:#fff!important; color:#111827!important; font-family:Arial,Helvetica,sans-serif!important; }
-
-    aside, header, .no-print { display:none!important; }
-
-    main { overflow:visible!important; height:auto!important; }
-
-    main > div { max-width:none!important; margin:0!important; padding:0!important; }
-
-    .print-card { border:1px solid #d1d5db!important; border-radius:0!important; box-shadow:none!important; break-inside:avoid; }
-
-}
-
-@media print {
-    /* Hide the shared layout and everything outside the record */
-    body * {
-        visibility: hidden !important;
-    }
-
-    /* Show only the maintenance request record */
-    .print-page,
-    .print-page * {
-        visibility: visible !important;
-    }
-
-    /* Start the record at the top of the printed page */
-    .print-page {
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 100% !important;
-        max-width: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        height: auto !important;
-        overflow: visible !important;
-    }
-
-    /* Never print the work update form or navigation controls */
-    .no-print {
-        display: none !important;
-    }
-
-    /* Keep the record readable on paper */
-    .print-card {
-        background: #fff !important;
-        color: #111827 !important;
-        box-shadow: none !important;
-        border: 1px solid #d1d5db !important;
-        border-radius: 0 !important;
-        overflow: visible !important;
-        break-inside: auto !important;
-        page-break-inside: auto !important;
-    }
-
-    /* Do not print a photo viewer overlay */
-    #imageFullscreen {
-        display: none !important;
-    }
-
-    img {
-        max-width: 100% !important;
-        print-color-adjust: exact;
-        -webkit-print-color-adjust: exact;
-    }
-
-    a {
-        color: #111827 !important;
-        text-decoration: none !important;
-    }
-}
-
-</style>
-
-
-
-<div class="py-5 print-page">
-    <div class="flex items-center justify-between gap-3 mb-5 no-print">
+<div class="py-5">
+    <div class="flex items-center justify-between gap-3 mb-5">
 
         <a href="{{ route('maintenanceRequest.personnel') }}" class="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-indigo-600">
 
@@ -99,32 +16,23 @@
             Back to Assigned Requests
 
         </a>
-
-        <button type="button" onclick="window.print()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#607844] hover:bg-[#3b551e] text-white text-sm font-semibold">
-
-            Print Request
-
-        </button>
-
-    </div>
-
-
+</div>
 
     @if(session('success'))
 
-        <div class="no-print mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>
+        <div class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>
 
     @endif
 
     @if(session('error'))
 
-        <div class="no-print mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ session('error') }}</div>
+        <div class="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ session('error') }}</div>
 
     @endif
 
     @if($errors->any())
 
-        <div class="no-print mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">
+        <div class="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">
 
             <p class="font-semibold">Please review the work update:</p>
 
@@ -141,26 +49,9 @@
         </div>
 
     @endif
+</div>
 
-
-
-    <div class="hidden print:block mb-6">
-
-        <div class="border-b-2 border-gray-900 pb-4">
-
-            <div class="text-xs font-bold tracking-wider text-gray-500">CDSO MAINTENANCE</div>
-
-            <div class="text-2xl font-bold">MAINTENANCE REQUEST RECORD</div>
-
-            <div class="text-sm mt-1">{{ $requestData->ticket_number }}</div>
-
-        </div>
-
-    </div>
-
-
-
-    <section class="print-card bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+    <section class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
 
         <div class="px-5 py-5 border-b border-gray-100 dark:border-gray-700">
 
@@ -310,9 +201,7 @@
 
     </section>
 
-
-
-    <section class="no-print mt-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+    <section class="mt-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
 
         <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
 
@@ -322,15 +211,11 @@
 
         </div>
 
-
-
         <form method="POST" action="{{ route('updateRequest.personnel', $requestData->id) }}" class="p-5">
 
             @csrf
 
             @method('PUT')
-
-
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
@@ -338,7 +223,7 @@
 
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5">Status</label>
 
-                    <select id="work-status" name="status" class="w-full rounded-xl border-gray-200 bg-gray-50 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <select id="work-status" name="status" class="w-full min-h-12 rounded-xl border-gray-200 bg-gray-50 px-4 py-3 text-base focus:border-indigo-500 focus:ring-indigo-500">
 
                         <option value="">Keep current status ({{ ucfirst(str_replace('_',' ', $requestData->status)) }})</option>
 
@@ -356,21 +241,17 @@
 
                 </div>
 
-
-
                 <div>
 
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5">Remarks / comments</label>
 
-                    <textarea name="remarks" rows="2" placeholder="Describe the work performed, findings, instructions, or any other update..."
+                    <textarea name="remarks" rows="3" placeholder="Describe the work performed, findings, instructions, or any other update..."
 
-                              class="w-full rounded-xl border-gray-200 bg-gray-50 text-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+                              class="w-full min-h-28 rounded-xl border-gray-200 bg-gray-50 px-4 py-3 text-base leading-relaxed focus:border-indigo-500 focus:ring-indigo-500"></textarea>
 
                 </div>
 
             </div>
-
-
 
             @if($requestData->status === 'in_progress')
 
@@ -394,11 +275,7 @@
 
                     </div>
 
-
-
                     <div id="materials" class="space-y-2"></div>
-
-
 
                     <label class="mt-4 flex items-start gap-2 rounded-lg border border-gray-200 p-3 text-sm text-gray-700">
 
@@ -420,8 +297,6 @@
 
             @endif
 
-
-
             <div class="flex justify-end mt-5">
 
                 <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold">
@@ -436,9 +311,7 @@
 
     </section>
 
-
-
-    <section class="print-card mt-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+    <section class="mt-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
 
         <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
 
@@ -447,8 +320,6 @@
             <p class="mt-1 text-xs text-gray-500">Complete request history.</p>
 
         </div>
-
-
 
         <div class="p-5">
 
@@ -497,24 +368,7 @@
         </div>
 
     </section>
-
-
-
-
-
-
-
-    <div class="hidden print:flex mt-8 pt-4 border-t border-gray-300 justify-between text-[10px] text-gray-500">
-
-        <span>CDSO Maintenance Management System</span>
-
-        <span>Printed {{ now()->format('M d, Y h:i A') }}</span>
-
-    </div>
-
 </div>
-
-
 
 @if($requestData->status === 'in_progress')
 
@@ -548,7 +402,81 @@ document.addEventListener('DOMContentLoaded', function () {
 
     ) }};
 
+    // Custom in-page confirmation modal for removing a material.
+    const removeMaterialModal = document.createElement('div');
+    removeMaterialModal.className = 'fixed inset-0 z-[100] hidden items-center justify-center bg-black/50 px-4 py-6';
+    removeMaterialModal.innerHTML = `
+        <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-800"
+             role="dialog" aria-modal="true" aria-labelledby="remove-material-title"
+             aria-describedby="remove-material-description">
+            <div class="flex items-start gap-4">
+                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M3 6h18"></path>
+                        <path d="M8 6V4h8v2"></path>
+                        <path d="m19 6-1 14H6L5 6"></path>
+                        <path d="M10 11v5M14 11v5"></path>
+                    </svg>
+                </div>
+                <div class="min-w-0">
+                    <h3 id="remove-material-title" class="text-lg font-bold text-gray-900 dark:text-white">
+                        Remove material?
+                    </h3>
+                    <p id="remove-material-description" class="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-300">
+                        Are you sure you want to remove this material from the list? This action only removes it from this work update.
+                    </p>
+                </div>
+            </div>
+            <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <button type="button" data-modal-cancel
+                        class="min-h-11 rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">
+                    Cancel
+                </button>
+                <button type="button" data-modal-confirm
+                        class="min-h-11 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-rose-700">
+                    Yes, remove
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(removeMaterialModal);
 
+    let pendingMaterialRemoval = null;
+
+    function closeRemoveMaterialModal() {
+        removeMaterialModal.classList.add('hidden');
+        removeMaterialModal.classList.remove('flex');
+        pendingMaterialRemoval = null;
+    }
+
+    function openRemoveMaterialModal(onConfirm) {
+        pendingMaterialRemoval = onConfirm;
+        removeMaterialModal.classList.remove('hidden');
+        removeMaterialModal.classList.add('flex');
+        removeMaterialModal.querySelector('[data-modal-cancel]')?.focus();
+    }
+
+    removeMaterialModal.querySelector('[data-modal-cancel]')?.addEventListener('click', closeRemoveMaterialModal);
+
+    removeMaterialModal.querySelector('[data-modal-confirm]')?.addEventListener('click', () => {
+        if (typeof pendingMaterialRemoval === 'function') {
+            pendingMaterialRemoval();
+        }
+        closeRemoveMaterialModal();
+    });
+
+    removeMaterialModal.addEventListener('click', event => {
+        if (event.target === removeMaterialModal) {
+            closeRemoveMaterialModal();
+        }
+    });
+
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && !removeMaterialModal.classList.contains('hidden')) {
+            closeRemoveMaterialModal();
+        }
+    });
 
     function updateMaterialsVisibility() {
 
@@ -557,8 +485,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const completing = statusSelect.value === 'completed';
 
         materialsSection.style.display = completing ? '' : 'none';
-
-
 
         if (!completing) {
 
@@ -571,8 +497,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
     }
-
-
 
     function syncNoMaterialsState() {
 
@@ -592,99 +516,132 @@ document.addEventListener('DOMContentLoaded', function () {
 
     }
 
-
-
     function addMaterial() {
 
         if (!container || noMaterialsCheckbox?.checked) return;
 
-
-
         const row = document.createElement('div');
 
-        row.className = 'grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_110px_auto] gap-2 items-center';
+        row.className = 'grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_140px_auto] gap-3 items-stretch';
 
+        // Searchable material field.
+        const searchWrapper = document.createElement('div');
+        searchWrapper.className = 'relative min-w-0';
 
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.placeholder = 'Search material by name...';
+        searchInput.autocomplete = 'off';
+        searchInput.required = true;
+        searchInput.className = 'w-full min-h-12 rounded-xl border-gray-200 bg-gray-50 px-4 py-3 text-base focus:border-indigo-500 focus:ring-indigo-500';
+        searchInput.setAttribute('aria-label', 'Search inventory materials');
 
-        const select = document.createElement('select');
+        // Keep the submitted item_id[] value separate from the visible search text.
+        const selectedItem = document.createElement('input');
+        selectedItem.type = 'hidden';
+        selectedItem.name = 'item_id[]';
 
-        select.name = 'item_id[]';
+        const results = document.createElement('div');
+        results.className = 'absolute z-30 mt-1 hidden max-h-56 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg';
+        results.setAttribute('role', 'listbox');
 
-        select.required = true;
+        function renderResults() {
+            const query = searchInput.value.trim().toLowerCase();
+            const matches = items.filter(item => {
+                const searchableText = `${item.name} ${item.unit}`.toLowerCase();
+                return item.quantity > 0 && searchableText.includes(query);
+            });
 
-        select.className = 'rounded-xl border-gray-200 bg-gray-50 text-sm';
+            results.innerHTML = '';
 
-        const placeholder = document.createElement('option');
+            if (!matches.length) {
+                const empty = document.createElement('div');
+                empty.className = 'px-3 py-3 text-xs text-gray-500';
+                empty.textContent = query
+                    ? 'No available materials match your search.'
+                    : 'No materials are currently available.';
+                results.appendChild(empty);
+            } else {
+                matches.forEach(item => {
+                    const option = document.createElement('button');
+                    option.type = 'button';
+                    option.className = 'flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm hover:bg-indigo-50 focus:bg-indigo-50 focus:outline-none';
+                    option.setAttribute('role', 'option');
 
-        placeholder.value = '';
+                    const name = document.createElement('span');
+                    name.className = 'min-w-0 truncate font-medium text-gray-700';
+                    name.textContent = item.name;
 
-        placeholder.textContent = 'Select material';
+                    const stock = document.createElement('span');
+                    stock.className = 'shrink-0 text-xs text-gray-500';
+                    stock.textContent = `${item.quantity} ${item.unit} available`;
 
-        select.appendChild(placeholder);
+                    option.append(name, stock);
 
+                    option.addEventListener('click', () => {
+                        selectedItem.value = item.id;
+                        searchInput.value = item.name;
+                        searchInput.setCustomValidity('');
+                        quantity.max = item.quantity;
+                        quantity.title = `Maximum available: ${item.quantity}`;
+                        results.classList.add('hidden');
+                    });
 
+                    results.appendChild(option);
+                });
+            }
 
-        items.forEach(item => {
+            results.classList.remove('hidden');
+        }
 
-            const option = document.createElement('option');
-
-            option.value = item.id;
-
-            option.disabled = item.quantity <= 0;
-
-            option.textContent = `${item.name} (${item.quantity} ${item.unit} available)`;
-
-            select.appendChild(option);
-
+        searchInput.addEventListener('input', () => {
+            // Typing after a selection clears it; personnel must choose a result again.
+            selectedItem.value = '';
+            quantity.removeAttribute('max');
+            quantity.removeAttribute('title');
+            searchInput.setCustomValidity('Select a material from the search results.');
+            renderResults();
         });
 
+        searchInput.addEventListener('focus', renderResults);
 
+        searchInput.addEventListener('keydown', event => {
+            if (event.key === 'Escape') {
+                results.classList.add('hidden');
+            }
+        });
+
+        searchInput.setCustomValidity('Select a material from the search results.');
+
+        searchWrapper.append(searchInput, selectedItem, results);
 
         const quantity = document.createElement('input');
-
         quantity.type = 'number';
-
         quantity.name = 'quantity_used[]';
-
         quantity.min = '1';
-
         quantity.step = '1';
-
         quantity.value = '1';
-
         quantity.required = true;
-
-        quantity.className = 'rounded-xl border-gray-200 bg-gray-50 text-sm';
-
-
+        quantity.placeholder = 'Qty';
+        quantity.className = 'w-full min-h-12 rounded-xl border-gray-200 bg-gray-50 px-4 py-3 text-base focus:border-indigo-500 focus:ring-indigo-500';
 
         const remove = document.createElement('button');
-
         remove.type = 'button';
-
         remove.textContent = 'Remove';
+        remove.className = 'min-h-12 justify-self-start rounded-xl border border-rose-200 px-4 py-3 text-sm font-semibold text-rose-600 hover:bg-rose-50';
+        remove.addEventListener('click', () => {
+            openRemoveMaterialModal(() => row.remove());
+        });
 
-        remove.className = 'px-3 py-2 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50';
-
-        remove.addEventListener('click', () => row.remove());
-
-
-
-        row.append(select, quantity, remove);
-
+        row.append(searchWrapper, quantity, remove);
         container.appendChild(row);
-
     }
-
-
 
     button?.addEventListener('click', addMaterial);
 
     statusSelect?.addEventListener('change', updateMaterialsVisibility);
 
     noMaterialsCheckbox?.addEventListener('change', syncNoMaterialsState);
-
-
 
     updateMaterialsVisibility();
 
