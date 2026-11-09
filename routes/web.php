@@ -89,12 +89,6 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Route::post('/admin/backup/restore', [BackupController::class, 'restore'])
         ->name('admin.backup.restore');
-
-
-
-    Route::get('/test', function () {
-        return view('admin.records');
-    });
 });
 
 //Personnel

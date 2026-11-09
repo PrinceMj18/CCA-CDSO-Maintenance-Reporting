@@ -4,407 +4,485 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Symfony\Component\Process\Process;
 use ZipArchive;
+use Throwable;
 
 class BackupController extends Controller
 {
-    /**
-     * Show backup and restore page.
-     */
     public function index()
-    {
-        return view('admin.backup');
-    }
+{
+    return view('admin.backup', [
+        'databaseDriver' => config('database.default') === 'pgsql'
+            ? 'pgsql'
+            : 'mysql',
+    ]);
+}
 
     /**
-     * Create database + uploaded files backup.
+     * Create a PostgreSQL SQL file, custom-format dump, or complete ZIP package.
+     * The active Laravel database connection is used, so localhost and Render
+     * do not need separate hardcoded database paths.
      */
-    public function backup()
+    public function backup(Request $request)
     {
-        $backupDirectory = storage_path('app/backups');
+        $validated = $request->validate([
+            'format' => ['required', 'in:sql,dump,zip'],
+        ]);
 
-        // Create backup directory if it doesn't exist
-        if (!File::exists($backupDirectory)) {
-            File::makeDirectory($backupDirectory, 0755, true);
+        $connection = $this->databaseConnection();
+        if ($connection instanceof \Illuminate\Http\RedirectResponse) {
+            return $connection;
         }
+
+        $directory = storage_path('app/backups');
+        File::ensureDirectoryExists($directory);
 
         $timestamp = now()->format('Y-m-d_H-i-s');
+        $format = $validated['format'];
+        $extension = $format === 'dump' ? 'dump' : ($format === 'sql' ? 'sql' : 'zip');
+        $fileName = "CCA_Backup_{$timestamp}.{$extension}";
+        $outputPath = $directory . DIRECTORY_SEPARATOR . $fileName;
+        $temporarySql = $directory . DIRECTORY_SEPARATOR . "database_{$timestamp}.sql";
+        $temporaryDump = $directory . DIRECTORY_SEPARATOR . "database_{$timestamp}.dump";
 
-        $sqlFile = $backupDirectory . "/database_{$timestamp}.sql";
-        $zipFile = $backupDirectory . "/CCA_Backup_{$timestamp}.zip";
+        try {
+            if ($format === 'sql' || $format === 'zip') {
+    $this->createSqlBackup($connection, $temporarySql);
+}
 
-        /*
-        |--------------------------------------------------------------------------
-        | Database Configuration
-        |--------------------------------------------------------------------------
-        */
-
-        $host = env('DB_HOST', '127.0.0.1');
-        $port = env('DB_PORT', '3307');
-        $database = env('DB_DATABASE');
-        $username = env('DB_USERNAME');
-        $password = env('DB_PASSWORD');
-
-        /*
-        |--------------------------------------------------------------------------
-        | MySQL 8.0 mysqldump
-        |--------------------------------------------------------------------------
-        */
-
-        $mysqldump = 'C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\mysqldump.exe';
-
-        if (!file_exists($mysqldump)) {
-            return back()->with(
-                'error',
-                'MySQL 8.0 mysqldump.exe was not found.'
-            );
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Create SQL Backup
-        |--------------------------------------------------------------------------
-        */
-
-        $command = '"' . $mysqldump . '"'
-            . ' --host=' . escapeshellarg($host)
-            . ' --port=' . escapeshellarg($port)
-            . ' --user=' . escapeshellarg($username)
-            . ' --add-drop-table'
-            . ' --routines'
-            . ' --triggers'
-            . ' --events';
-
-        if ($password !== '') {
-            $command .= ' --password=' . escapeshellarg($password);
-        }
-
-        $command .= ' ' . escapeshellarg($database)
-            . ' > ' . escapeshellarg($sqlFile);
-
-        exec($command, $output, $resultCode);
-
-        if ($resultCode !== 0 || !file_exists($sqlFile) || filesize($sqlFile) === 0) {
-
-            if (file_exists($sqlFile)) {
-                unlink($sqlFile);
-            }
-
-            return back()->with(
-                'error',
-                'Database backup failed. Please check your MySQL configuration.'
-            );
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Create ZIP
-        |--------------------------------------------------------------------------
-        */
-
-        $zip = new ZipArchive();
-
-        if ($zip->open(
-            $zipFile,
-            ZipArchive::CREATE | ZipArchive::OVERWRITE
-        ) !== true) {
-
-            unlink($sqlFile);
-
-            return back()->with(
-                'error',
-                'Unable to create backup ZIP file.'
-            );
-        }
-
-        // Add database SQL file
-        $zip->addFile(
-            $sqlFile,
-            basename($sqlFile)
+            if ($format === 'dump') {
+    if ($connection['driver'] !== 'pgsql') {
+        return back()->with(
+            'error',
+            'PostgreSQL custom dump format is only available when using PostgreSQL.'
         );
-
-        /*
-        |--------------------------------------------------------------------------
-        | Add Uploaded Maintenance Images
-        |--------------------------------------------------------------------------
-        */
-
-        $publicStorage = storage_path('app/public');
-
-        if (File::exists($publicStorage)) {
-
-            $files = File::allFiles($publicStorage);
-
-            foreach ($files as $file) {
-
-                $relativePath = str_replace(
-                    $publicStorage . DIRECTORY_SEPARATOR,
-                    '',
-                    $file->getPathname()
-                );
-
-                $zip->addFile(
-                    $file->getPathname(),
-                    'storage/' . str_replace('\\', '/', $relativePath)
-                );
-            }
-        }
-
-        $zip->close();
-
-        /*
-        |--------------------------------------------------------------------------
-        | Remove Temporary SQL File
-        |--------------------------------------------------------------------------
-        */
-
-        if (file_exists($sqlFile)) {
-            unlink($sqlFile);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Download Backup
-        |--------------------------------------------------------------------------
-        */
-
-        return response()->download(
-            $zipFile,
-            basename($zipFile),
-            [
-                'Content-Type' => 'application/zip',
-            ]
-        )->deleteFileAfterSend(true);
     }
 
-    /**
-     * Restore database + uploaded files.
-     */
+    $this->runPostgresUtility(
+        'pg_dump',
+        [
+            '--host=' . $connection['host'],
+            '--port=' . $connection['port'],
+            '--username=' . $connection['username'],
+            '--dbname=' . $connection['database'],
+            '--no-owner',
+            '--no-privileges',
+            '--format=custom',
+            '--file=' . $temporaryDump,
+        ],
+        $connection
+    );
+
+    $this->assertNonEmptyFile($temporaryDump);
+
+    return response()->download($temporaryDump, $fileName)
+        ->deleteFileAfterSend(true);
+}
+
+            if ($format === 'sql') {
+                $this->assertNonEmptyFile($temporarySql);
+                return response()->download($temporarySql, $fileName, [
+                    'Content-Type' => 'application/sql',
+                ])->deleteFileAfterSend(true);
+            }
+
+            // ZIP package: portable SQL + uploaded public storage files + instructions.
+            $this->assertNonEmptyFile($temporarySql);
+            $zip = new ZipArchive();
+            if ($zip->open($outputPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+                throw new \RuntimeException('Unable to create the backup ZIP file.');
+            }
+
+            $zip->addFile($temporarySql, 'database.sql');
+            $publicStorage = storage_path('app/public');
+            if (File::isDirectory($publicStorage)) {
+                foreach (File::allFiles($publicStorage) as $file) {
+                    $relative = str_replace('\\', '/', substr(
+                        $file->getPathname(),
+                        strlen($publicStorage) + 1
+                    ));
+                    $zip->addFile($file->getPathname(), 'storage/' . $relative);
+                }
+            }
+
+            $readme = "CCA Maintenance Reporting System Backup\n"
+                . "Created: " . now()->toDateTimeString() . "\n"
+                . "Database: " . strtoupper($connection['driver']) . "\n"
+                . "Database file: database.sql\n"
+                . "Uploaded public files: storage/\n\n"
+                . "Restore database.sql using PostgreSQL psql with ON_ERROR_STOP enabled. "
+                . "The SQL file was generated with DROP statements for objects being backed up. "
+                . "Restore only into the intended database.\n"
+                . "Copy the contents of storage/ into Laravel storage/app/public.\n\n"
+                . "Note: This package backs up the application's connected database and Laravel public storage files. "
+                . "It does not export Supabase platform-managed Auth users, Storage metadata, project settings, "
+                . "or database roles outside the connected database privileges.\n";
+            $zip->addFromString('RESTORE_README.txt', $readme);
+            $zip->close();
+
+            $this->assertNonEmptyFile($outputPath);
+            return response()->download($outputPath, $fileName, [
+                'Content-Type' => 'application/zip',
+            ])->deleteFileAfterSend(true);
+        } catch (Throwable $exception) {
+            report($exception);
+            foreach ([$outputPath, $temporarySql, $temporaryDump] as $path) {
+                if (is_file($path)) {
+                    @unlink($path);
+                }
+            }
+
+            return back()->with('error', 'Backup failed. Check the Laravel log for details and confirm that PostgreSQL 17 client utilities are installed.');
+        }
+    }
+
+    /** Restore a ZIP package, plain SQL file, or PostgreSQL custom dump. */
     public function restore(Request $request)
     {
         $request->validate([
-            'backup' => [
-                'required',
-                'file',
-                'mimes:zip',
-                'max:512000',
-            ],
+            'backup' => ['required', 'file', 'max:512000'],
         ]);
 
-        $backupDirectory = storage_path('app/backups');
-
-        if (!File::exists($backupDirectory)) {
-            File::makeDirectory($backupDirectory, 0755, true);
+        $connection = $this->databaseConnection();
+        if ($connection instanceof \Illuminate\Http\RedirectResponse) {
+            return $connection;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Save Uploaded Backup
-        |--------------------------------------------------------------------------
-        */
-
-        $uploadedBackup = $request->file('backup');
-
-        $timestamp = now()->format('YmdHis');
-
-        $zipPath = $backupDirectory . "/restore_{$timestamp}.zip";
-
-        $uploadedBackup->move(
-            $backupDirectory,
-            basename($zipPath)
-        );
-
-        /*
-        |--------------------------------------------------------------------------
-        | Open ZIP
-        |--------------------------------------------------------------------------
-        */
-
-        $zip = new ZipArchive();
-
-        if ($zip->open($zipPath) !== true) {
-
-            unlink($zipPath);
-
-            return back()->with(
-                'error',
-                'The backup file could not be opened.'
-            );
+        $uploaded = $request->file('backup');
+        $extension = strtolower($uploaded->getClientOriginalExtension());
+        if (!in_array($extension, ['zip', 'sql', 'dump'], true)) {
+            return back()->with('error', 'Unsupported backup file. Please select a .zip, .sql, or .dump backup.');
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Find SQL File
-        |--------------------------------------------------------------------------
-        */
+        $directory = storage_path('app/backups');
+        File::ensureDirectoryExists($directory);
+        $restoreDirectory = $directory . DIRECTORY_SEPARATOR . 'restore_' . now()->format('Ymd_His_u');
+        File::ensureDirectoryExists($restoreDirectory);
 
-        $sqlFileName = null;
+        try {
+            $databaseFile = null;
+            $isCustomDump = $extension === 'dump';
+            $extractedStorage = null;
 
-        for ($i = 0; $i < $zip->numFiles; $i++) {
+            if ($extension === 'sql' || $extension === 'dump') {
+                $databaseFile = $uploaded->getRealPath();
+            } else {
+                $zip = new ZipArchive();
+                if ($zip->open($uploaded->getRealPath()) !== true) {
+                    throw new \RuntimeException('The ZIP backup could not be opened.');
+                }
 
-            $fileName = $zip->getNameIndex($i);
+                $databaseIndex = $zip->locateName('database.sql', ZipArchive::FL_NOCASE);
+                if ($databaseIndex === false) {
+                    $zip->close();
+                    throw new \RuntimeException('The ZIP does not contain database.sql.');
+                }
 
-            if (str_ends_with(
-                strtolower($fileName),
-                '.sql'
-            )) {
-                $sqlFileName = $fileName;
-                break;
+                $databaseContents = $zip->getFromIndex($databaseIndex);
+                if ($databaseContents === false || trim($databaseContents) === '') {
+                    $zip->close();
+                    throw new \RuntimeException('The SQL backup inside the ZIP is empty or unreadable.');
+                }
+                $databaseFile = $restoreDirectory . DIRECTORY_SEPARATOR . 'database.sql';
+                File::put($databaseFile, $databaseContents);
+
+                // Stage uploaded files separately; do not replace live files unless the database restore succeeds.
+                $extractedStorage = $restoreDirectory . DIRECTORY_SEPARATOR . 'storage';
+                for ($i = 0; $i < $zip->numFiles; $i++) {
+                    $entry = $zip->getNameIndex($i);
+                    if (!is_string($entry) || !str_starts_with($entry, 'storage/')) {
+                        continue;
+                    }
+                    $relative = substr($entry, strlen('storage/'));
+                    $normalized = str_replace('\\', '/', $relative);
+                    $segments = explode('/', $normalized);
+                    if ($normalized === '' || str_starts_with($normalized, '/') || in_array('..', $segments, true)) {
+                        continue;
+                    }
+                    if (str_ends_with($entry, '/')) {
+                        continue;
+                    }
+
+                    $contents = $zip->getFromIndex($i);
+                    if ($contents === false) {
+                        continue;
+                    }
+                    $destination = $extractedStorage . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $normalized);
+                    File::ensureDirectoryExists(dirname($destination));
+                    File::put($destination, $contents);
+                }
+                $zip->close();
             }
-        }
 
-        if (!$sqlFileName) {
+            $this->assertNonEmptyFile($databaseFile);
 
-            $zip->close();
-            unlink($zipPath);
-
-            return back()->with(
-                'error',
-                'No database SQL file was found inside the backup.'
-            );
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Extract ZIP
-        |--------------------------------------------------------------------------
-        */
-
-        $restoreDirectory = $backupDirectory
-            . DIRECTORY_SEPARATOR
-            . 'restore_'
-            . now()->format('YmdHis');
-
-        File::makeDirectory(
-            $restoreDirectory,
-            0755,
-            true
+            if ($isCustomDump) {
+    if ($connection['driver'] !== 'pgsql') {
+        throw new \RuntimeException(
+            'PostgreSQL custom dumps cannot be restored into MySQL.'
         );
+    }
 
-        $zip->extractTo($restoreDirectory);
+    $this->runPostgresUtility('pg_restore', [
+        '--host=' . $connection['host'],
+        '--port=' . $connection['port'],
+        '--username=' . $connection['username'],
+        '--dbname=' . $connection['database'],
+        '--clean',
+        '--if-exists',
+        '--no-owner',
+        '--no-privileges',
+        '--exit-on-error',
+        '--single-transaction',
+        $databaseFile,
+    ], $connection);
+} else {
+    $this->restoreSqlBackup($connection, $databaseFile);
+}
 
-        $zip->close();
-
-        $sqlPath = $restoreDirectory
-            . DIRECTORY_SEPARATOR
-            . $sqlFileName;
-
-        if (!file_exists($sqlPath)) {
-
-            File::deleteDirectory($restoreDirectory);
-            unlink($zipPath);
-
-            return back()->with(
-                'error',
-                'The database SQL file could not be extracted.'
-            );
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Database Configuration
-        |--------------------------------------------------------------------------
-        */
-
-        $host = env('DB_HOST', '127.0.0.1');
-        $port = env('DB_PORT', '3307');
-        $database = env('DB_DATABASE');
-        $username = env('DB_USERNAME');
-        $password = env('DB_PASSWORD');
-
-        /*
-        |--------------------------------------------------------------------------
-        | MySQL 8.0 mysql.exe
-        |--------------------------------------------------------------------------
-        */
-
-        $mysql = 'C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\mysql.exe';
-
-        if (!file_exists($mysql)) {
-
-            File::deleteDirectory($restoreDirectory);
-            unlink($zipPath);
+            if ($extractedStorage && File::isDirectory($extractedStorage)) {
+                $livePublicStorage = storage_path('app/public');
+                File::ensureDirectoryExists($livePublicStorage);
+                // Merge backed-up files without deleting unrelated files already on the server.
+                File::copyDirectory($extractedStorage, $livePublicStorage);
+            }
 
             return back()->with(
-                'error',
-                'MySQL 8.0 mysql.exe was not found.'
-            );
+    'success',
+    'The ' . strtoupper($connection['driver']) .
+    ' database backup and uploaded files were restored successfully.'
+);
+        } catch (Throwable $exception) {
+            report($exception);
+            return back()->with('error', 'Restore failed. The backup may be incompatible or the database user may lack required permissions. Check the Laravel log before trying again.');
+        } finally {
+            File::deleteDirectory($restoreDirectory);
+        }
+    }
+
+    /** Return active PostgreSQL connection settings or a user-facing error. */
+    private function postgresConnection(): array|\Illuminate\Http\RedirectResponse
+    {
+        $connectionName = config('database.default');
+        $config = config("database.connections.{$connectionName}");
+
+        if (!$config || ($config['driver'] ?? null) !== 'pgsql') {
+            return back()->with('error', 'Backup and restore currently require Laravel to use its PostgreSQL database connection.');
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Restore Database
-        |--------------------------------------------------------------------------
-        */
-
-        $command = '"' . $mysql . '"'
-            . ' --host=' . escapeshellarg($host)
-            . ' --port=' . escapeshellarg($port)
-            . ' --user=' . escapeshellarg($username);
-
-        if ($password !== '') {
-            $command .= ' --password=' . escapeshellarg($password);
+        $host = $config['host'] ?? '127.0.0.1';
+        if (is_array($host)) {
+            $host = $host[0] ?? '127.0.0.1';
         }
 
-        $command .= ' ' . escapeshellarg($database)
+        return [
+            'host' => (string) $host,
+            'port' => (string) ($config['port'] ?? '5432'),
+            'database' => (string) ($config['database'] ?? ''),
+            'username' => (string) ($config['username'] ?? ''),
+            'password' => (string) ($config['password'] ?? ''),
+            'sslmode' => (string) ($config['sslmode'] ?? 'prefer'),
+        ];
+    }
+
+/**
+ * Get the active Laravel database connection.
+ * Supports MySQL locally and PostgreSQL on Render.
+ */
+private function databaseConnection(): array|\Illuminate\Http\RedirectResponse
+{
+    $connectionName = config('database.default');
+    $config = config("database.connections.{$connectionName}");
+
+    $driver = $config['driver'] ?? null;
+
+    if (!$config || !in_array($driver, ['mysql', 'pgsql'], true)) {
+        return back()->with(
+            'error',
+            'Unsupported database. Only MySQL and PostgreSQL are supported.'
+        );
+    }
+
+    $host = $config['host'] ?? '127.0.0.1';
+
+    if (is_array($host)) {
+        $host = $host[0] ?? '127.0.0.1';
+    }
+
+    return [
+        'driver' => $driver,
+        'host' => (string) $host,
+        'port' => (string) ($config['port'] ?? ($driver === 'mysql' ? '3306' : '5432')),
+        'database' => (string) ($config['database'] ?? ''),
+        'username' => (string) ($config['username'] ?? ''),
+        'password' => (string) ($config['password'] ?? ''),
+        'sslmode' => (string) ($config['sslmode'] ?? 'prefer'),
+    ];
+}
+
+/**
+ * Create SQL backup using the active database driver.
+ */
+private function createSqlBackup(array $connection, string $outputPath): void
+{
+    if ($connection['driver'] === 'mysql') {
+        $binary = $this->findMySqlUtility('mysqldump');
+
+        if (!$binary) {
+            throw new \RuntimeException('MySQL mysqldump.exe was not found.');
+        }
+
+        $command = '"' . $binary . '"'
+            . ' --host=' . escapeshellarg($connection['host'])
+            . ' --port=' . escapeshellarg($connection['port'])
+            . ' --user=' . escapeshellarg($connection['username'])
+            . ' --single-transaction'
+            . ' --routines --triggers --events --add-drop-table';
+
+        if ($connection['password'] !== '') {
+            $command .= ' --password=' . escapeshellarg($connection['password']);
+        }
+
+        $command .= ' ' . escapeshellarg($connection['database'])
+            . ' > ' . escapeshellarg($outputPath);
+
+        exec($command, $output, $resultCode);
+
+        if ($resultCode !== 0 || !is_file($outputPath) || filesize($outputPath) === 0) {
+            throw new \RuntimeException('MySQL database backup failed.');
+        }
+
+        return;
+    }
+
+    $this->runPostgresUtility('pg_dump', [
+        '--host=' . $connection['host'],
+        '--port=' . $connection['port'],
+        '--username=' . $connection['username'],
+        '--dbname=' . $connection['database'],
+        '--no-owner',
+        '--no-privileges',
+        '--clean',
+        '--if-exists',
+        '--format=plain',
+        '--file=' . $outputPath,
+    ], $connection);
+
+    $this->assertNonEmptyFile($outputPath);
+}
+
+/**
+ * Restore SQL backup using the active database driver.
+ */
+private function restoreSqlBackup(array $connection, string $sqlPath): void
+{
+    if ($connection['driver'] === 'mysql') {
+        $binary = $this->findMySqlUtility('mysql');
+
+        if (!$binary) {
+            throw new \RuntimeException('MySQL mysql.exe was not found.');
+        }
+
+        $command = '"' . $binary . '"'
+            . ' --host=' . escapeshellarg($connection['host'])
+            . ' --port=' . escapeshellarg($connection['port'])
+            . ' --user=' . escapeshellarg($connection['username']);
+
+        if ($connection['password'] !== '') {
+            $command .= ' --password=' . escapeshellarg($connection['password']);
+        }
+
+        $command .= ' ' . escapeshellarg($connection['database'])
             . ' < ' . escapeshellarg($sqlPath);
 
         exec($command, $output, $resultCode);
 
         if ($resultCode !== 0) {
-
-            File::deleteDirectory($restoreDirectory);
-            unlink($zipPath);
-
-            return back()->with(
-                'error',
-                'Database restore failed.'
-            );
+            throw new \RuntimeException('MySQL database restore failed.');
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Restore Uploaded Files
-        |--------------------------------------------------------------------------
-        */
+        return;
+    }
 
-        $extractedStorage = $restoreDirectory
-            . DIRECTORY_SEPARATOR
-            . 'storage';
+    $this->runPostgresUtility('psql', [
+        '--host=' . $connection['host'],
+        '--port=' . $connection['port'],
+        '--username=' . $connection['username'],
+        '--dbname=' . $connection['database'],
+        '--set=ON_ERROR_STOP=1',
+        '--single-transaction',
+        '--file=' . $sqlPath,
+    ], $connection);
+}
 
-        if (File::exists($extractedStorage)) {
+/**
+ * Find MySQL command-line utilities.
+ */
+private function findMySqlUtility(string $utility): ?string
+{
+    if (PHP_OS_FAMILY === 'Windows') {
+        $candidates = [
+            'C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\' . $utility . '.exe',
+            'C:\\Program Files\\MySQL\\MySQL Server 8.4\\bin\\' . $utility . '.exe',
+        ];
 
-            $publicStorage = storage_path('app/public');
+        foreach ($candidates as $candidate) {
+            if (is_file($candidate)) {
+                return $candidate;
+            }
+        }
+    }
 
-            File::ensureDirectoryExists($publicStorage);
+    return $this->findUtility(
+        $utility . (PHP_OS_FAMILY === 'Windows' ? '.exe' : '')
+    );
+}
 
-            File::copyDirectory(
-                $extractedStorage,
-                $publicStorage
-            );
+    /** Run a PostgreSQL utility without shell interpolation. */
+    private function runPostgresUtility(string $utility, array $arguments, array $connection): void
+    {
+        $binaryEnvironmentKey = strtoupper(str_replace('-', '_', $utility)) . '_BINARY';
+        $binary = env($binaryEnvironmentKey) ?: $this->findUtility($utility);
+        if (!$binary) {
+            throw new \RuntimeException("{$utility} was not found on the server.");
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Cleanup
-        |--------------------------------------------------------------------------
-        */
-
-        File::deleteDirectory($restoreDirectory);
-
-        if (file_exists($zipPath)) {
-            unlink($zipPath);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Success
-        |--------------------------------------------------------------------------
-        */
-
-        return back()->with(
-            'success',
-            'Database and uploaded files were successfully restored.'
+        $process = new Process(
+            array_merge([$binary], $arguments),
+            base_path(),
+            [
+                'PGPASSWORD' => $connection['password'],
+                'PGSSLMODE' => $connection['sslmode'],
+            ]
         );
+        $process->setTimeout(3600);
+        $process->mustRun();
+    }
+
+    /** Find an executable through PATH on Windows or Linux. */
+    private function findUtility(string $utility): ?string
+    {
+        $finder = PHP_OS_FAMILY === 'Windows' ? 'where.exe' : 'which';
+        try {
+            $process = new Process([$finder, $utility]);
+            $process->setTimeout(10);
+            $process->run();
+            if (!$process->isSuccessful()) {
+                return null;
+            }
+            $lines = preg_split('/\r\n|\r|\n/', trim($process->getOutput()));
+            $path = trim($lines[0] ?? '');
+            return $path !== '' ? $path : null;
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    private function assertNonEmptyFile(?string $path): void
+    {
+        if (!$path || !is_file($path) || filesize($path) === 0) {
+            throw new \RuntimeException('The generated backup file is missing or empty.');
+        }
     }
 }
