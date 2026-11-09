@@ -42,7 +42,7 @@ class PersonnelController extends Controller
             ->orderBy('created_at')
             ->limit(8)
             ->get();
-
+$currentWork = $workQueue->firstWhere('status', 'in_progress');
         // Recent history is limited to requests currently assigned to this person.
         $recentActivity = RequestLog::with(['request', 'updatedBy'])
             ->whereHas('request', function ($query) use ($userId) {
@@ -53,14 +53,15 @@ class PersonnelController extends Controller
             ->get();
 
         return view('pages.dashboard.index', compact(
-            'approved',
-            'inProgress',
-            'completedToday',
-            'activeCount',
-            'highPriorityCount',
-            'workQueue',
-            'recentActivity'
-        ));
+    'approved',
+    'inProgress',
+    'completedToday',
+    'activeCount',
+    'highPriorityCount',
+    'workQueue',
+    'currentWork',
+    'recentActivity'
+));
     }
 
 

@@ -125,9 +125,42 @@
                             {{ $log->action ? ucfirst(str_replace('_', ' ', $log->action)) : ucfirst(str_replace('_', ' ', $log->status)) }}
                             @if($log->updatedBy) · by {{ trim($log->updatedBy->fname.' '.$log->updatedBy->lname) }} @endif
                         </p>
-                        @if($log->remarks)
-                            <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">{{ \Illuminate\Support\Str::limit($log->remarks, 110) }}</p>
-                        @endif
+                        
+@if($log->remarks)
+    @php
+        $logData = json_decode($log->remarks, true);
+    @endphp
+
+    <div class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+        @if($log->action === 'materials_returned'
+            && is_array($logData)
+            && isset($logData['items'])
+            && is_array($logData['items']))
+
+            <p class="font-medium">Materials returned:</p>
+
+            <ul class="mt-1 space-y-1">
+                @foreach($logData['items'] as $item)
+                    <li>
+                        {{ $item['item_name'] ?? 'Unknown item' }}
+                        — {{ $item['quantity'] ?? 0 }}
+                        {{ $item['unit'] ?? 'units' }}
+                    </li>
+                @endforeach
+            </ul>
+
+            @if(!empty($logData['notes']))
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    Remarks: {{ $logData['notes'] }}
+                </p>
+            @endif
+
+        @else
+            <p>{{ \Illuminate\Support\Str::limit($log->remarks, 110) }}</p>
+        @endif
+    </div>
+@endif
+
                         <p class="mt-2 text-[11px] text-gray-400">{{ $log->created_at?->format('M d, Y · h:i A') }}</p>
                     </div>
                 @empty
