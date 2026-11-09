@@ -224,8 +224,8 @@ class BackupController extends Controller
         );
     }
 
-    // Supabase owns its platform-managed PostgREST event trigger. Exclude
-    // that one object from the restore list so pg_restore never tries to drop it.
+    // Supabase owns these platform-managed PostgREST event triggers. Exclude
+    // them so pg_restore never tries to drop or recreate them.
     $restoreList = $databaseFile . '.restore.list';
 
     try {
@@ -374,7 +374,7 @@ private function createSqlBackup(array $connection, string $outputPath): void
     }
 
     // Build a custom archive first, then render it as SQL using a filtered
-    // TOC list. This prevents Supabase's managed pgrst_drop_watch trigger
+    // TOC list. This prevents Supabase-managed PostgREST event triggers
     // from being included in SQL and ZIP backups.
     $temporaryDump = $outputPath . '.temporary.dump';
     $restoreList = $temporaryDump . '.list';
@@ -454,7 +454,7 @@ private function restoreSqlBackup(array $connection, string $sqlPath): void
 
     // Older SQL backups may still contain DROP/CREATE statements for the
     // Supabase-managed event trigger. Remove only statements targeting that
-    // exact trigger; leave all application schema and data statements intact.
+    // specific trigger; leave all application schema and data statements intact.
     $sanitizedSqlPath = $sqlPath . '.sanitized.sql';
 
     try {
@@ -503,8 +503,8 @@ private function findMySqlUtility(string $utility): ?string
 }
 
     /**
-     * Generate a pg_restore TOC list excluding Supabase's managed
-     * pgrst_drop_watch event trigger.
+     * Generate a pg_restore TOC list excluding Supabase-managed
+     * PostgREST event triggers.
      */
     private function createFilteredPostgresRestoreList(
         string $archivePath,
@@ -532,9 +532,9 @@ private function findMySqlUtility(string $utility): ?string
         $listContents = $process->getOutput();
 
         // pg_restore list entries are one object per line. Exclude only the
-        // exact Supabase-managed event trigger, not other event triggers.
+        // Supabase-managed PostgREST event triggers, not other event triggers.
         $filteredContents = preg_replace(
-            '/^.*\bEVENT TRIGGER\b.*\bpgrst_drop_watch\b.*(?:\r\n|\n|\r|$)/mi',
+            '/^.*\bEVENT TRIGGER\b.*\bpgrst_(?:drop_watch|ddl_watch)\b.*(?:\r\n|\n|\r|$)/mi',
             '',
             $listContents
         );
@@ -547,8 +547,8 @@ private function findMySqlUtility(string $utility): ?string
     }
 
     /**
-     * Remove SQL statements that target only Supabase's managed
-     * pgrst_drop_watch event trigger.
+     * Remove SQL statements that target only Supabase-managed
+     * PostgREST event triggers.
      *
      * The input is streamed line by line so large SQL backups do not need
      * to be loaded entirely into PHP memory.
@@ -573,7 +573,7 @@ private function findMySqlUtility(string $utility): ?string
         try {
             while (($line = fgets($input)) !== false) {
                 if (!$skipStatement && preg_match(
-                    '/^\s*(?:DROP\s+EVENT\s+TRIGGER(?:\s+IF\s+EXISTS)?|CREATE\s+EVENT\s+TRIGGER|ALTER\s+EVENT\s+TRIGGER|COMMENT\s+ON\s+EVENT\s+TRIGGER)\s+"?pgrst_drop_watch"?(?=\s|;|$)/i',
+                    '/^\s*(?:DROP\s+EVENT\s+TRIGGER(?:\s+IF\s+EXISTS)?|CREATE\s+EVENT\s+TRIGGER|ALTER\s+EVENT\s+TRIGGER|COMMENT\s+ON\s+EVENT\s+TRIGGER)\s+"?pgrst_(?:drop_watch|ddl_watch)"?(?=\s|;|$)/i',
                     $line
                 )) {
                     // Event-trigger DDL is a single SQL statement, though
