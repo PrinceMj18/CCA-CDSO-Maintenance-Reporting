@@ -224,19 +224,36 @@ class BackupController extends Controller
         );
     }
 
-    $this->runPostgresUtility('pg_restore', [
-        '--host=' . $connection['host'],
-        '--port=' . $connection['port'],
-        '--username=' . $connection['username'],
-        '--dbname=' . $connection['database'],
-        '--clean',
-        '--if-exists',
-        '--no-owner',
-        '--no-privileges',
-        '--exit-on-error',
-        '--single-transaction',
-        $databaseFile,
-    ], $connection);
+    // Supabase owns its platform-managed PostgREST event trigger. Exclude
+    // that one object from the restore list so pg_restore never tries to drop it.
+    $restoreList = $databaseFile . '.restore.list';
+
+    try {
+        $this->createFilteredPostgresRestoreList(
+            $databaseFile,
+            $restoreList,
+            $connection
+        );
+
+        $this->runPostgresUtility('pg_restore', [
+            '--host=' . $connection['host'],
+            '--port=' . $connection['port'],
+            '--username=' . $connection['username'],
+            '--dbname=' . $connection['database'],
+            '--clean',
+            '--if-exists',
+            '--no-owner',
+            '--no-privileges',
+            '--exit-on-error',
+            '--single-transaction',
+            '--use-list=' . $restoreList,
+            $databaseFile,
+        ], $connection);
+    } finally {
+        if (is_file($restoreList)) {
+            @unlink($restoreList);
+        }
+    }
 } else {
     $this->restoreSqlBackup($connection, $databaseFile);
 }
@@ -356,20 +373,50 @@ private function createSqlBackup(array $connection, string $outputPath): void
         return;
     }
 
-    $this->runPostgresUtility('pg_dump', [
-        '--host=' . $connection['host'],
-        '--port=' . $connection['port'],
-        '--username=' . $connection['username'],
-        '--dbname=' . $connection['database'],
-        '--no-owner',
-        '--no-privileges',
-        '--clean',
-        '--if-exists',
-        '--format=plain',
-        '--file=' . $outputPath,
-    ], $connection);
+    // Build a custom archive first, then render it as SQL using a filtered
+    // TOC list. This prevents Supabase's managed pgrst_drop_watch trigger
+    // from being included in SQL and ZIP backups.
+    $temporaryDump = $outputPath . '.temporary.dump';
+    $restoreList = $temporaryDump . '.list';
 
-    $this->assertNonEmptyFile($outputPath);
+    try {
+        $this->runPostgresUtility('pg_dump', [
+            '--host=' . $connection['host'],
+            '--port=' . $connection['port'],
+            '--username=' . $connection['username'],
+            '--dbname=' . $connection['database'],
+            '--no-owner',
+            '--no-privileges',
+            '--format=custom',
+            '--file=' . $temporaryDump,
+        ], $connection);
+
+        $this->assertNonEmptyFile($temporaryDump);
+
+        $this->createFilteredPostgresRestoreList(
+            $temporaryDump,
+            $restoreList,
+            $connection
+        );
+
+        $this->runPostgresUtility('pg_restore', [
+            '--clean',
+            '--if-exists',
+            '--no-owner',
+            '--no-privileges',
+            '--use-list=' . $restoreList,
+            '--file=' . $outputPath,
+            $temporaryDump,
+        ], $connection);
+
+        $this->assertNonEmptyFile($outputPath);
+    } finally {
+        foreach ([$temporaryDump, $restoreList] as $temporaryFile) {
+            if (is_file($temporaryFile)) {
+                @unlink($temporaryFile);
+            }
+        }
+    }
 }
 
 /**
@@ -405,15 +452,31 @@ private function restoreSqlBackup(array $connection, string $sqlPath): void
         return;
     }
 
-    $this->runPostgresUtility('psql', [
-        '--host=' . $connection['host'],
-        '--port=' . $connection['port'],
-        '--username=' . $connection['username'],
-        '--dbname=' . $connection['database'],
-        '--set=ON_ERROR_STOP=1',
-        '--single-transaction',
-        '--file=' . $sqlPath,
-    ], $connection);
+    // Older SQL backups may still contain DROP/CREATE statements for the
+    // Supabase-managed event trigger. Remove only statements targeting that
+    // exact trigger; leave all application schema and data statements intact.
+    $sanitizedSqlPath = $sqlPath . '.sanitized.sql';
+
+    try {
+        $this->removeManagedEventTriggerStatements(
+            $sqlPath,
+            $sanitizedSqlPath
+        );
+
+        $this->runPostgresUtility('psql', [
+            '--host=' . $connection['host'],
+            '--port=' . $connection['port'],
+            '--username=' . $connection['username'],
+            '--dbname=' . $connection['database'],
+            '--set=ON_ERROR_STOP=1',
+            '--single-transaction',
+            '--file=' . $sanitizedSqlPath,
+        ], $connection);
+    } finally {
+        if (is_file($sanitizedSqlPath)) {
+            @unlink($sanitizedSqlPath);
+        }
+    }
 }
 
 /**
@@ -438,6 +501,109 @@ private function findMySqlUtility(string $utility): ?string
         $utility . (PHP_OS_FAMILY === 'Windows' ? '.exe' : '')
     );
 }
+
+    /**
+     * Generate a pg_restore TOC list excluding Supabase's managed
+     * pgrst_drop_watch event trigger.
+     */
+    private function createFilteredPostgresRestoreList(
+        string $archivePath,
+        string $listPath,
+        array $connection
+    ): void {
+        $binary = env('PG_RESTORE_BINARY') ?: $this->findUtility('pg_restore');
+
+        if (!$binary) {
+            throw new \RuntimeException('pg_restore was not found on the server.');
+        }
+
+        $process = new Process(
+            [$binary, '--list', $archivePath],
+            base_path(),
+            [
+                'PGPASSWORD' => $connection['password'],
+                'PGSSLMODE' => $connection['sslmode'],
+            ]
+        );
+
+        $process->setTimeout(3600);
+        $process->mustRun();
+
+        $listContents = $process->getOutput();
+
+        // pg_restore list entries are one object per line. Exclude only the
+        // exact Supabase-managed event trigger, not other event triggers.
+        $filteredContents = preg_replace(
+            '/^.*\bEVENT TRIGGER\b.*\bpgrst_drop_watch\b.*(?:\r\n|\n|\r|$)/mi',
+            '',
+            $listContents
+        );
+
+        if (!is_string($filteredContents) || trim($filteredContents) === '') {
+            throw new \RuntimeException('Unable to create a valid PostgreSQL restore list.');
+        }
+
+        File::put($listPath, $filteredContents);
+    }
+
+    /**
+     * Remove SQL statements that target only Supabase's managed
+     * pgrst_drop_watch event trigger.
+     *
+     * The input is streamed line by line so large SQL backups do not need
+     * to be loaded entirely into PHP memory.
+     */
+    private function removeManagedEventTriggerStatements(
+        string $inputPath,
+        string $outputPath
+    ): void {
+        $input = fopen($inputPath, 'rb');
+        if ($input === false) {
+            throw new \RuntimeException('Unable to read the SQL backup file.');
+        }
+
+        $output = fopen($outputPath, 'wb');
+        if ($output === false) {
+            fclose($input);
+            throw new \RuntimeException('Unable to create the temporary SQL restore file.');
+        }
+
+        $skipStatement = false;
+
+        try {
+            while (($line = fgets($input)) !== false) {
+                if (!$skipStatement && preg_match(
+                    '/^\s*(?:DROP\s+EVENT\s+TRIGGER(?:\s+IF\s+EXISTS)?|CREATE\s+EVENT\s+TRIGGER|ALTER\s+EVENT\s+TRIGGER|COMMENT\s+ON\s+EVENT\s+TRIGGER)\s+"?pgrst_drop_watch"?(?=\s|;|$)/i',
+                    $line
+                )) {
+                    // Event-trigger DDL is a single SQL statement, though
+                    // CREATE statements may continue across multiple lines.
+                    $skipStatement = !str_contains($line, ';');
+                    continue;
+                }
+
+                if ($skipStatement) {
+                    if (str_contains($line, ';')) {
+                        $skipStatement = false;
+                    }
+                    continue;
+                }
+
+                if (fwrite($output, $line) === false) {
+                    throw new \RuntimeException('Unable to write the temporary SQL restore file.');
+                }
+            }
+
+            if (!feof($input)) {
+                throw new \RuntimeException('An error occurred while reading the SQL backup file.');
+            }
+        } finally {
+            fclose($input);
+            fclose($output);
+        }
+
+        $this->assertNonEmptyFile($outputPath);
+    }
 
     /** Run a PostgreSQL utility without shell interpolation. */
     private function runPostgresUtility(string $utility, array $arguments, array $connection): void
