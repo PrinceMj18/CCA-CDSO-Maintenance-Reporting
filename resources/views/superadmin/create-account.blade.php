@@ -1,4 +1,3 @@
-
 @extends('layouts.apps')
 
 @section('content')
@@ -143,14 +142,46 @@
                     <option value="">Select authorized role</option>
 
                     @foreach($roles as $role)
-                        <option value="{{ $role->id }}" @selected(old('role_id') == $role->id)>
+                        <option value="{{ $role->id }}" data-role-name="{{ strtolower($role->name) }}" @selected(old('role_id') == $role->id)>
                             {{ ucfirst($role->name) }}
                         </option>
                     @endforeach
-
                 </select>
 
                 @error('role_id')
+                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <!-- Personnel Designation: shown only for Personnel role -->
+            <div id="personnelDesignationWrapper" class="hidden">
+                <label for="designation" class="mb-1.5 block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    Personnel Designation <span class="text-red-500">*</span>
+                </label>
+
+                <select
+                    id="designation"
+                    name="designation"
+                    disabled
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition focus:border-[#607844] focus:ring-2 focus:ring-[#607844]/20 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+
+                    <option value="">Select designation</option>
+                    <option value="CDSO Head" @selected(old('designation') === 'CDSO Head')>CDSO Head</option>
+                    <option value="Utility Supervisor" @selected(old('designation') === 'Utility Supervisor')>Utility Supervisor</option>
+                    <option value="Supply Officer" @selected(old('designation') === 'Supply Officer')>Supply Officer</option>
+                    <option value="Office Secretary" @selected(old('designation') === 'Office Secretary')>Office Secretary</option>
+                    <option value="Maintenance" @selected(old('designation') === 'Maintenance')>Maintenance</option>
+                    <option value="Utility" @selected(old('designation') === 'Utility')>Utility</option>
+                    <option value="Gardener" @selected(old('designation') === 'Gardener')>Gardener</option>
+                    <option value="Gardener/Utility" @selected(old('designation') === 'Gardener/Utility')>Gardener/Utility</option>
+                    <option value="Team Leader" @selected(old('designation') === 'Team Leader')>Team Leader</option>
+                </select>
+
+                <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    Used to distinguish personnel in maintenance assignments. Does not change their system permissions.
+                </p>
+
+                @error('designation')
                     <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                 @enderror
             </div>
@@ -179,7 +210,6 @@
                         @click="showPassword = !showPassword"
                         :aria-label="showPassword ? 'Hide password' : 'Show password'"
                         class="absolute inset-y-0 right-3 text-xs font-semibold text-[#607844] hover:underline dark:text-[#a9c18e]">
-
                         <span x-text="showPassword ? 'Hide' : 'Show'"></span>
                     </button>
                 </div>
@@ -217,7 +247,6 @@
                         @click="showConfirmation = !showConfirmation"
                         :aria-label="showConfirmation ? 'Hide confirmation password' : 'Show confirmation password'"
                         class="absolute inset-y-0 right-3 text-xs font-semibold text-[#607844] hover:underline dark:text-[#a9c18e]">
-
                         <span x-text="showConfirmation ? 'Hide' : 'Show'"></span>
                     </button>
                 </div>
@@ -250,17 +279,13 @@
             <a
                 href="{{ auth()->user()->role->name === 'superadmin' ? route('acc_superadmin') : route('accountsmanagement') }}"
                 class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-6 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
-
                 Cancel
-
             </a>
 
             <button
                 type="submit"
                 class="inline-flex items-center justify-center rounded-lg bg-[#607844] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#52693a] focus:outline-none focus:ring-2 focus:ring-[#607844]/40 focus:ring-offset-2">
-
                 Create Account
-
             </button>
 
         </div>
@@ -268,5 +293,34 @@
     </form>
 
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const roleSelect = document.getElementById('role_id');
+    const designationWrapper = document.getElementById('personnelDesignationWrapper');
+    const designationSelect = document.getElementById('designation');
+
+    if (!roleSelect || !designationWrapper || !designationSelect) {
+        return;
+    }
+
+    function toggleDesignation() {
+        const selectedOption = roleSelect.options[roleSelect.selectedIndex];
+        const selectedRole = selectedOption?.dataset.roleName || '';
+        const isPersonnel = selectedRole === 'personnel';
+
+        designationWrapper.classList.toggle('hidden', !isPersonnel);
+        designationSelect.disabled = !isPersonnel;
+        designationSelect.required = isPersonnel;
+
+        if (!isPersonnel) {
+            designationSelect.value = '';
+        }
+    }
+
+    roleSelect.addEventListener('change', toggleDesignation);
+    toggleDesignation();
+});
+</script>
 
 @endsection

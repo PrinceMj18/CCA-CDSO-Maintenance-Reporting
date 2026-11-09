@@ -22,7 +22,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::middleware(['auth', 'superadmin'])->group(function () {
     Route::get('/dashboard/superadmin', [SuperAdminController::class, 'superadminDashboard'])->name('superadminDashboard');
     Route::get('/manage-account/superadmin/create', [SuperAdminController::class, 'createAccount'])->name('superadmin.accounts.create');
-    Route::post('/manage-account/superadmin/create', [AdminController::class, 'register'])->name('superadmin.accounts.store');
+    Route::post('/manage-account/superadmin/create', [SuperAdminController::class, 'register'])->name('superadmin.accounts.store');
     Route::get('/archives/accounts/superadmin', [ArchiveController::class, 'accounts'])->name('superadmin.archives.accounts');
     Route::post('/archives/accounts/superadmin/{id}/restore', [ArchiveController::class, 'restoreAccount'])->name('superadmin.archives.accounts.restore');
     Route::get('/archives/requests/superadmin', [ArchiveController::class, 'requests'])->name('superadmin.archives.requests');
