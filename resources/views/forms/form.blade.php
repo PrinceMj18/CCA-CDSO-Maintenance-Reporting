@@ -7,8 +7,8 @@
         <!-- BACK TO DASHBOARD -->
         <div class="mb-4">
             <a href="{{ route('userDashboard') }}" class="inline-flex items-center text-lg text-gray-500
-                           hover:text-indigo-600
-                           dark:text-gray-400 dark:hover:text-indigo-400">
+                               hover:text-indigo-600
+                               dark:text-gray-400 dark:hover:text-indigo-400">
 
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 
@@ -43,7 +43,7 @@
                     This information will be reported to CDSO.
                 </p>
                 <div class="mt-3 flex items-start gap-3 rounded-lg border border-amber-200
-                bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20" role="note">
+                    bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20" role="note">
 
                     <svg class="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" fill="none"
                         stroke="currentColor" viewBox="0 0 24 24">
@@ -84,12 +84,12 @@
 
                         <input type="text" id="title" name="title" required maxlength="255" value="{{ old('title') }}"
                             placeholder="Enter request title" class="w-full rounded-lg border border-gray-300 dark:border-gray-600
-                   bg-white dark:bg-gray-700 px-3 py-2 text-sm
-                   text-gray-800 dark:text-white
-                   placeholder:text-gray-400 dark:placeholder:text-gray-500
-                   focus:ring-2 focus:ring-[#607844] focus:border-[#607844]
-                   focus:outline-none transition
-                   @error('title') border-red-500 @enderror">
+                       bg-white dark:bg-gray-700 px-3 py-2 text-sm
+                       text-gray-800 dark:text-white
+                       placeholder:text-gray-400 dark:placeholder:text-gray-500
+                       focus:ring-2 focus:ring-[#607844] focus:border-[#607844]
+                       focus:outline-none transition
+                       @error('title') border-red-500 @enderror">
 
                         @error('title')
                             <p class="mt-1 text-sm text-red-600" role="alert">
@@ -108,41 +108,64 @@
                             <div class="flex gap-2">
                                 <input type="text" id="location-search" required autocomplete="off"
                                     placeholder="Search or select a location" value="" class="min-w-0 flex-1 rounded-lg border border-gray-300 dark:border-gray-600
-                                               bg-white dark:bg-gray-700 px-3 py-2 text-sm
-                                               text-gray-800 dark:text-white
-                                               focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                                   bg-white dark:bg-gray-700 px-3 py-2 text-sm
+                                                   text-gray-800 dark:text-white
+                                                   focus:ring-2 focus:ring-indigo-500 focus:outline-none">
 
                                 <button type="button" id="clear-location" class="shrink-0 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium
-                                               text-gray-600 hover:bg-gray-100
-                                               dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                                                   text-gray-600 hover:bg-gray-100
+                                                   dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
                                     Clear
                                 </button>
                             </div>
 
                             <div id="location-options" class="absolute left-0 right-0 top-full z-50 mt-1 hidden max-h-52 overflow-y-auto
-                                           rounded-lg border border-gray-200 bg-white py-1 shadow-lg
-                                           dark:border-gray-600 dark:bg-gray-800"></div>
+                                               rounded-lg border border-gray-200 bg-white py-1 shadow-lg
+                                               dark:border-gray-600 dark:bg-gray-800"></div>
 
                             <select id="location" name="location" class="hidden" aria-hidden="true" tabindex="-1">
                                 <option value="" disabled {{ old('location') ? '' : 'selected' }}>
                                     Select a location
                                 </option>
 
-                                <option value="Administration Office">Administration Office</option>
-                                <option value="Faculty Room">Faculty Room</option>
-                                <option value="Library">Library</option>
+                                <option value="Auditorium">Auditorium</option>
+                                <option value="BFO">BFO</option>
+                                <option value="CAO">CAO</option>
+                                <option value="Canteen">Canteen</option>
+                                <option value="CDSO">CDSO</option>
+                                <option value="CEO">CEO</option>
+                                <option value="CFGO">CFGO</option>
                                 <option value="Clinic">Clinic</option>
+                                <option value="Cisco Lab" @selected(old('location') === 'Cisco Lab')>Cisco Lab</option>
+                                <option value="CLAB1">CLAB1</option>
+                                <option value="CLAB2">CLAB2</option>
+                                <option value="CLAB3">CLAB3</option>
+                                <option value="CLAB4">CLAB4</option>
+                                <option value="CLAB5">CLAB5</option>
+                                <option value="CLAB6">CLAB6</option>
+                                <option value="CLAB7">CLAB7</option>
+                                <option value="CLAB8">CLAB8</option>
+                                <option value="CLAB9">CLAB9</option>
                                 <option value="Contact Center" @selected(old('location') === 'Contact Center')>Contact Center
                                 </option>
-                                <option value="MPH" @selected(old('location') === 'MPH')>MPH</option>
-                                <option value="Cisco Lab" @selected(old('location') === 'Cisco Lab')>Cisco Lab</option>
-                                <option value="Canteen">Canteen</option>
+                                <option value="Corridor">Corridor</option>
                                 <option value="Gymnasium">Gymnasium</option>
-                                <option value="Auditorium">Auditorium</option>
                                 <option value="Guidance Office">Guidance Office</option>
-                                <option value="SASO">SASO</option>
+                                <option value="HLAB">HLAB</option>
+                                <option value="HRMO">HRMO</option>
+                                <option value="ICSLIS Faculty">ICSLIS Faculty</option>
+                                <option value="IBM Faculty">IBM Faculty</option>
+                                <option value="IEAS Faculty">IEAS Faculty</option>
+                                <option value="Library">Library</option>
                                 <option value="MISSO">MISSO</option>
-
+                                <option value="MPH" @selected(old('location') === 'MPH')>MPH</option>
+                                <option value="Outdoor Area">Outdoor Area</option>
+                                <option value="OVPREQA">OVPREQA</option>
+                                <option value="OVPSA">OVPSA</option>
+                                <option value="Parking Area">Parking Area</option>
+                                <option value="RMO">RMO</option>
+                                <option value="SASO">SASO</option>
+                                <option value="Stairway">Stairway</option>
                                 <!-- Computer Laboratories -->
                                 <option value="CLAB1">CLAB1</option>
                                 <option value="CLAB2">CLAB2</option>
@@ -154,17 +177,6 @@
                                 <option value="CLAB8">CLAB8</option>
                                 <option value="CLAB9">CLAB9</option>
                                 <option value="HLAB">HLAB</option>
-
-                                <!-- R Building - 1st Floor -->
-                                <option value="R101">R101</option>
-                                <option value="R102">R102</option>
-                                <option value="R103">R103</option>
-                                <option value="R104">R104</option>
-                                <option value="R105">R105</option>
-                                <option value="R106">R106</option>
-                                <option value="R107">R107</option>
-                                <option value="R108">R108</option>
-                                <option value="R109">R109</option>
 
                                 <!-- R Building - 2nd Floor -->
                                 <option value="R201">R201</option>
@@ -198,16 +210,6 @@
                                 <option value="R407">R407</option>
                                 <option value="R408">R408</option>
                                 <option value="R409">R409</option>
-                                <!-- L Building - 1st Floor -->
-                                <option value="L101">L101</option>
-                                <option value="L102">L102</option>
-                                <option value="L103">L103</option>
-                                <option value="L104">L104</option>
-                                <option value="L105">L105</option>
-                                <option value="L106">L106</option>
-                                <option value="L107">L107</option>
-                                <option value="L108">L108</option>
-                                <option value="L109">L109</option>
 
                                 <!-- L Building - 2nd Floor -->
                                 <option value="L201">L201</option>
@@ -348,12 +350,6 @@
                                 <option value="P4-CR-Right-Mini">P4 - Right Mini CR</option>
                                 <option value="P4-CR-Right-Large">P4 - Right Large CR</option>
 
-                                <!-- Other Areas -->
-                                <option value="Corridor">Corridor</option>
-                                <option value="Stairway">Stairway</option>
-                                <option value="Parking Area">Parking Area</option>
-                                <option value="Outdoor Area">Outdoor Area</option>
-
                                 <option value="Other">Other</option>
                             </select>
                             @error('location')
@@ -372,9 +368,9 @@
 
                             <input type="text" id="other_location" name="other_location" value="{{ old('other_location') }}"
                                 placeholder="Enter your specific location" class="w-full rounded-lg border border-gray-300 dark:border-gray-600
-                   bg-white dark:bg-gray-700 px-3 py-2 text-sm
-                   text-gray-800 dark:text-white focus:ring-2
-                   focus:ring-indigo-500 focus:outline-none">
+                       bg-white dark:bg-gray-700 px-3 py-2 text-sm
+                       text-gray-800 dark:text-white focus:ring-2
+                       focus:ring-indigo-500 focus:outline-none">
                         </div>
                         @error('location')
                             <p class="mt-1 text-sm text-red-600" role="alert">
@@ -390,10 +386,10 @@
                         </label>
 
                         <select name="category" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600
-               bg-white dark:bg-gray-700 px-3 py-2 text-sm
-               text-gray-800 dark:text-white focus:ring-2
-               focus:ring-indigo-500 focus:outline-none
-               @error('category') border-red-500 @enderror">
+                   bg-white dark:bg-gray-700 px-3 py-2 text-sm
+                   text-gray-800 dark:text-white focus:ring-2
+                   focus:ring-indigo-500 focus:outline-none
+                   @error('category') border-red-500 @enderror">
                             <option value="" disabled {{ old('category') ? '' : 'selected' }}>
                                 Select category
                             </option>
@@ -454,9 +450,9 @@
                         </label>
 
                         <textarea name="description" rows="5" placeholder="Describe the issue in detail..." class="w-full rounded-lg border border-gray-300 dark:border-gray-600
-               bg-white dark:bg-gray-700 px-3 py-2 text-sm
-               text-gray-800 dark:text-white focus:ring-2
-               focus:ring-indigo-500 focus:outline-none">{{ old('description') }}</textarea>
+                   bg-white dark:bg-gray-700 px-3 py-2 text-sm
+                   text-gray-800 dark:text-white focus:ring-2
+                   focus:ring-indigo-500 focus:outline-none">{{ old('description') }}</textarea>
 
                         @error('description')
                             <p class="mt-1 text-sm text-red-600" role="alert">
@@ -476,7 +472,7 @@
             <div class="flex justify-end gap-3">
 
                 <button type="submit" class="px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700
-                               text-sm font-semibold text-white transition">
+                                   text-sm font-semibold text-white transition">
                     Submit Request
                 </button>
 

@@ -208,9 +208,8 @@
             <option value="Facility" {{ request('category') == 'Facility' ? 'selected' : '' }}>
               Facility
             </option>
-
-            <option value="Air Conditioning" {{ request('category') == 'Air Conditioning' ? 'selected' : '' }}>
-              Air Conditioning
+            <option value="General Services" {{ request('category') == 'General Services' ? 'selected' : '' }}>
+              General Services
             </option>
 
           </select>

@@ -2,10 +2,36 @@
 
 @section('content')
 
+@php
+    $roleCounts = [
+        'user' => $users->filter(fn ($user) => strtolower($user->role->name ?? 'user') === 'user')->count(),
+        'personnel' => $users->filter(fn ($user) => strtolower($user->role->name ?? '') === 'personnel')->count(),
+        'admin' => $users->filter(fn ($user) => strtolower($user->role->name ?? '') === 'admin')->count(),
+    ];
+
+    $roleIndexes = [
+        'user' => 0,
+        'personnel' => 0,
+        'admin' => 0,
+    ];
+@endphp
+
 <div x-data="{
     tab: 'user',
     showDeleteModal: false,
-    deleteUrl: ''
+    deleteUrl: '',
+    page: 1,
+    perPage: 5,
+    roleCounts: @js($roleCounts),
+
+    get totalPages() {
+        return Math.max(1, Math.ceil(this.roleCounts[this.tab] / this.perPage));
+    },
+
+    changeTab(role) {
+        this.tab = role;
+        this.page = 1;
+    }
 }" class="w-full px-4 mt-6 mb-8">
 
     <!-- PAGE HEADER -->
@@ -77,7 +103,7 @@
             @foreach(['user', 'personnel', 'admin'] as $role)
 
                 <button
-                    @click="tab = '{{ $role }}'"
+                    @click="changeTab('{{ $role }}')"
                     class="relative flex items-center gap-2 px-4 py-3
                            text-sm font-medium whitespace-nowrap
                            transition-colors duration-150
@@ -176,9 +202,17 @@
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
 
                     @forelse($users as $user)
+                        @php
+                            $paginationRole = strtolower($user->role->name ?? 'user');
+                            $rowIndex = $roleIndexes[$paginationRole] ?? 0;
+
+                            if (array_key_exists($paginationRole, $roleIndexes)) {
+                                $roleIndexes[$paginationRole]++;
+                            }
+                        @endphp
 
                         <tr
-                            x-show="tab === '{{ strtolower($user->role->name ?? 'user') }}'"
+                            x-show="tab === '{{ $paginationRole }}' && Math.floor({{ $rowIndex }} / perPage) + 1 === page"
                             x-transition
                             class="text-gray-700 transition-colors duration-150
                                    hover:bg-gray-50
@@ -408,6 +442,71 @@
 
             </table>
 
+        </div>
+
+        <!-- PAGINATION -->
+        <div class="flex flex-col sm:flex-row items-center justify-between
+                    gap-3 px-5 py-4 border-t border-gray-100
+                    dark:border-gray-700">
+
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+                Page <span class="font-semibold text-gray-700 dark:text-gray-200" x-text="page"></span>
+                of <span class="font-semibold text-gray-700 dark:text-gray-200" x-text="totalPages"></span>
+            </p>
+
+            <div class="flex items-center gap-1">
+
+                <!-- PREVIOUS PAGE -->
+                <button
+                    type="button"
+                    @click="page = Math.max(1, page - 1)"
+                    :disabled="page === 1"
+                    aria-label="Previous page"
+                    class="flex items-center justify-center w-8 h-8
+                           text-gray-500 border border-gray-200 rounded-md
+                           hover:bg-gray-100 disabled:opacity-40
+                           disabled:cursor-not-allowed
+                           dark:border-gray-600 dark:hover:bg-gray-700">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                         stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                </button>
+
+                <!-- PAGE NUMBERS -->
+                <template x-for="number in totalPages" :key="number">
+                    <button
+                        type="button"
+                        @click="page = number"
+                        x-text="number"
+                        :aria-current="page === number ? 'page' : null"
+                        :class="page === number
+                            ? 'text-white border-transparent'
+                            : 'text-gray-600 bg-white border-gray-200 hover:bg-gray-100 dark:text-gray-300 dark:bg-gray-800 dark:border-gray-600 dark:hover:bg-gray-700'"
+                        :style="page === number ? 'background-color: rgba(82, 105, 58, 1);' : ''"
+                        class="flex items-center justify-center w-8 h-8
+                               text-xs font-semibold border rounded-md transition-colors">
+                    </button>
+                </template>
+
+                <!-- NEXT PAGE -->
+                <button
+                    type="button"
+                    @click="page = Math.min(totalPages, page + 1)"
+                    :disabled="page === totalPages"
+                    aria-label="Next page"
+                    class="flex items-center justify-center w-8 h-8
+                           text-gray-500 border border-gray-200 rounded-md
+                           hover:bg-gray-100 disabled:opacity-40
+                           disabled:cursor-not-allowed
+                           dark:border-gray-600 dark:hover:bg-gray-700">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                         stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+
+            </div>
         </div>
 
     </div>

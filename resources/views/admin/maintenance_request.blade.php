@@ -175,7 +175,7 @@
 
                 <option value="">All categories</option>
 
-                @foreach(['Electrical', 'Plumbing', 'Furniture', 'Equipment / Technology', 'Facility', 'Air Conditioning'] as $category)
+                @foreach(['Electrical', 'Plumbing', 'Furniture', 'IT Equipment', 'Facility', 'General Services'] as $category)
 
                     <option value="{{ $category }}"
                         @selected(request('category') === $category)>
@@ -367,7 +367,7 @@
                                     @php
 
                                         $priorityClass = match ($item->priority) {
-                                            'high' => 'bg-rose-50 text-rose-700 border-rose-100',
+                                            'high' => 'bg-red-100 text-red-700 border-red-300',
                                             'low' => 'bg-slate-50 text-slate-600 border-slate-200',
                                             default => 'bg-amber-50 text-amber-700 border-amber-100',
                                         };

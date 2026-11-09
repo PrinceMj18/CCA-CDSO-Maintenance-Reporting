@@ -166,15 +166,9 @@
                     class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition focus:border-[#607844] focus:ring-2 focus:ring-[#607844]/20 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
 
                     <option value="">Select designation</option>
-                    <option value="CDSO Head" @selected(old('designation') === 'CDSO Head')>CDSO Head</option>
-                    <option value="Utility Supervisor" @selected(old('designation') === 'Utility Supervisor')>Utility Supervisor</option>
-                    <option value="Supply Officer" @selected(old('designation') === 'Supply Officer')>Supply Officer</option>
-                    <option value="Office Secretary" @selected(old('designation') === 'Office Secretary')>Office Secretary</option>
                     <option value="Maintenance" @selected(old('designation') === 'Maintenance')>Maintenance</option>
                     <option value="Utility" @selected(old('designation') === 'Utility')>Utility</option>
                     <option value="Gardener" @selected(old('designation') === 'Gardener')>Gardener</option>
-                    <option value="Gardener/Utility" @selected(old('designation') === 'Gardener/Utility')>Gardener/Utility</option>
-                    <option value="Team Leader" @selected(old('designation') === 'Team Leader')>Team Leader</option>
                 </select>
 
                 <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">

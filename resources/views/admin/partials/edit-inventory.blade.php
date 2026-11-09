@@ -58,13 +58,12 @@
                         <select name="category"
                             class="text-gray-700 dark:text-gray-300 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-4 text-lg">
 
-                            <option {{ $materials->category == 'Electrical' ? 'selected' : '' }}>Electrical</option>
-                            <option {{ $materials->category == 'Plumbing' ? 'selected' : '' }}>Plumbing</option>
-                            <option {{ $materials->category == 'Carpentry' ? 'selected' : '' }}>Carpentry</option>
-                            <option {{ $materials->category == 'Painting' ? 'selected' : '' }}>Painting</option>
-                            <option {{ $materials->category == 'Civil Works' ? 'selected' : '' }}>Civil Works</option>
-                            <option {{ $materials->category == 'Others' ? 'selected' : '' }}>Others</option>
-
+                            <option {{ $materials->category == 'Equipments' ? 'selected' : '' }}>Equipments</option>
+                            <option {{ $materials->category == 'Tools' ? 'selected' : '' }}>Tools</option>
+                            <option {{ $materials->category == 'Furniture' ? 'selected' : '' }}>Furniture</option>
+                            <option {{ $materials->category == 'Electrical Supplies' ? 'selected' : '' }}>Electrical Supplies</option>
+                            <option {{ $materials->category == 'Plumbing Supplies' ? 'selected' : '' }}>Plumbing Supplies</option>
+                            <option {{ $materials->category == 'School Supplies' ? 'selected' : '' }}>School Supplies</option>
                         </select>
                     </div>
 

@@ -47,12 +47,11 @@
 
                             <select name="category"
                                 class="w-full rounded-xl bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white px-4 py-3 focus:ring-2 focus:ring-teal-500 focus:outline-none">
-                                <option>Electrical</option>
-                                <option>Plumbing</option>
-                                <option>Carpentry</option>
-                                <option>Painting</option>
-                                <option>Civil Works</option>
-                                <option>Others</option>
+                                <option>Equipments</option>
+                                <option>Tools</option>
+                                <option>Furniture</option>
+                                <option>Electrical Supplies</option>
+                                <option>Plumbing Supplies</option>
                             </select>
                         </div>
 
