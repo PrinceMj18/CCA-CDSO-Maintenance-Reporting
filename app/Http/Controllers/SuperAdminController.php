@@ -57,7 +57,7 @@ class SuperAdminController extends Controller
     public function createAccount()
     {
         $roles = Role::whereIn('name', ['user', 'personnel', 'admin'])->orderBy('name')->get();
-        return view('admin.create-account', compact('roles'));
+        return view('superadmin.create-account', compact('roles'));
     }
 
     public function edit_account(Request $request, $id)
