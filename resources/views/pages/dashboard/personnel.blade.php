@@ -104,10 +104,20 @@
 
         <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <div class="border-b border-gray-100 px-5 py-4 dark:border-gray-700">
-                <h3 class="font-semibold text-gray-900 dark:text-white">Recent request updates</h3>
-                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Latest updates for your current task.</p>
+                <div class="flex items-center justify-between gap-3">
+                    <h3 class="font-semibold text-gray-900 dark:text-white">Recent request updates</h3>
+                    @if($recentActivity->isNotEmpty())
+                        <span class="shrink-0 rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                            {{ $recentActivity->count() }} {{ $recentActivity->count() === 1 ? 'update' : 'updates' }}
+                        </span>
+                    @endif
+                </div>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Latest updates for your current task. Scroll to view older activity.</p>
             </div>
-            <div class="divide-y divide-gray-100 dark:divide-gray-700">
+            <div class="max-h-[520px] overflow-y-auto overscroll-contain divide-y divide-gray-100 dark:divide-gray-700"
+                 tabindex="0"
+                 role="region"
+                 aria-label="Recent request updates">
                 @forelse($recentActivity as $log)
                     <div class="px-5 py-4">
                         <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ $log->request?->title ?? 'Maintenance request' }}</p>
