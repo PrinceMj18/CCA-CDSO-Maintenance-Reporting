@@ -52,6 +52,7 @@
                                 <option>Furniture</option>
                                 <option>Electrical Supplies</option>
                                 <option>Plumbing Supplies</option>
+                                <option>School Supplies</option>
                             </select>
                         </div>
 

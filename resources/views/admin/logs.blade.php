@@ -116,7 +116,7 @@
                 Furniture
             </option>
 
-            <option value="IT Equipment"
+            <option value="c"
                 {{ request('category') == 'IT Equipment' ? 'selected' : '' }}>
                 IT Equipment
             </option>
