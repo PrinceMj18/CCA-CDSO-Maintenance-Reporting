@@ -32,26 +32,25 @@ class PersonnelController extends Controller
             ->where('priority', 'high')
             ->count();
 
-        // Keep every active assignment visible. Personnel may have multiple
-        // approved requests queued, but only one request may be In Progress.
+        // Show only work that still needs attention, with active work first,
+        // then high-priority work and older requests.
         $workQueue = MaintenanceRequest::with('user')
             ->where('assigned_to', $userId)
             ->whereIn('status', ['approved', 'in_progress'])
             ->orderByRaw("CASE WHEN status = 'in_progress' THEN 0 ELSE 1 END")
             ->orderByRaw("CASE WHEN priority = 'high' THEN 0 WHEN priority = 'medium' THEN 1 ELSE 2 END")
             ->orderBy('created_at')
+            ->limit(8)
             ->get();
 
-        $currentWork = $workQueue->firstWhere('status', 'in_progress');
-
-        // Recent Updates follows the current task, not every queued or completed request.
-        $recentActivity = $currentWork
-            ? RequestLog::with(['request', 'updatedBy'])
-                ->where('request_id', $currentWork->id)
-                ->latest()
-                ->limit(10)
-                ->get()
-            : collect();
+        // Recent history is limited to requests currently assigned to this person.
+        $recentActivity = RequestLog::with(['request', 'updatedBy'])
+            ->whereHas('request', function ($query) use ($userId) {
+                $query->where('assigned_to', $userId);
+            })
+            ->latest()
+            ->limit(6)
+            ->get();
 
         return view('pages.dashboard.index', compact(
             'approved',
@@ -60,7 +59,6 @@ class PersonnelController extends Controller
             'activeCount',
             'highPriorityCount',
             'workQueue',
-            'currentWork',
             'recentActivity'
         ));
     }
@@ -118,21 +116,8 @@ public function maintenanceRequest(Request $request)
     // Always display 5 records per page.
     $perPage = 5;
 
-    if ($activeTab === 'all') {
-        // Show the current task first, followed by approved tasks waiting in queue.
-        $query->orderByRaw("CASE WHEN status = 'in_progress' THEN 0 ELSE 1 END")
-            ->orderByRaw("CASE WHEN priority = 'high' THEN 0 WHEN priority = 'medium' THEN 1 ELSE 2 END")
-            ->orderBy('created_at');
-    } elseif ($activeTab === 'approved') {
-        // Prioritize higher-priority tasks in the waiting queue.
-        $query->orderByRaw("CASE WHEN priority = 'high' THEN 0 WHEN priority = 'medium' THEN 1 ELSE 2 END")
-            ->orderBy('created_at');
-    } else {
-        // Completed history is shown newest first.
-        $query->latest();
-    }
-
     $requests = $query
+        ->latest()
         ->paginate($perPage)
         ->withQueryString();
 
@@ -197,20 +182,60 @@ public function viewRequest($id)
         ->where('assigned_to', auth()->id())
         ->findOrFail($id);
 
+    // Load inventory items for the materials interface.
     $inventoryItems = InventoryItem::orderBy('name')->get();
 
+    // Check whether this personnel member has another active request.
     $currentInProgress = MaintenanceRequest::where('assigned_to', auth()->id())
-        ->where('status', 'in_progress')
-        ->where('id', '!=', $requestData->id)
-        ->first();
+    ->where('status', 'in_progress')
+    ->where('id', '!=', $requestData->id)
+    ->first();
 
-    $hasOtherInProgress = $currentInProgress !== null;
+$hasOtherInProgress = $currentInProgress !== null;
+
+    $issuedMaterialMeta = [];
+    foreach ($requestData->logs->where('action', 'materials_issued') as $log) {
+        $meta = json_decode($log->remarks, true);
+        if (is_array($meta) && ($meta['handling_type'] ?? null) === 'returnable') {
+            $issuedMaterialMeta[(int) ($meta['usage_id'] ?? 0)] = $meta;
+        }
+    }
+
+    $materialReturnTotals = [];
+    foreach ($requestData->logs->where('action', 'materials_returned') as $log) {
+        $returnData = json_decode($log->remarks, true);
+        foreach (($returnData['items'] ?? []) as $entry) {
+            $usageId = (int) ($entry['usage_id'] ?? 0);
+            // Support older return records while using a single quantity for new returns.
+            $quantity = (int) ($entry['quantity'] ?? (
+                (int) ($entry['good'] ?? 0) +
+                (int) ($entry['damaged'] ?? 0) +
+                (int) ($entry['missing'] ?? 0)
+            ));
+            $materialReturnTotals[$usageId]['quantity'] = ($materialReturnTotals[$usageId]['quantity'] ?? 0) + $quantity;
+        }
+    }
+
+    $hasOutstandingReturns = false;
+    foreach ($issuedMaterialMeta as $usageId => $meta) {
+        $usage = $requestData->inventoryUsages->firstWhere('id', $usageId);
+        if (!$usage) continue;
+        $totals = $materialReturnTotals[$usageId] ?? [];
+        $processed = (int)($totals['good'] ?? 0) + (int)($totals['damaged'] ?? 0) + (int)($totals['missing'] ?? 0);
+        if ($processed < (int)$usage->quantity_used) {
+            $hasOutstandingReturns = true;
+            break;
+        }
+    }
 
     return view('personnel.view_request_personnel', compact(
-        'requestData',
-        'inventoryItems',
-        'hasOtherInProgress',
-        'currentInProgress'
+            'requestData',
+    'inventoryItems',
+    'issuedMaterialMeta',
+    'materialReturnTotals',
+    'hasOutstandingReturns',
+    'hasOtherInProgress',
+    'currentInProgress'
     ));
 }
 
@@ -227,6 +252,8 @@ public function updateRequest(Request $request, $id)
         'item_id.*' => 'required|integer|distinct|exists:inventory_items,id',
         'quantity_used' => 'nullable|array',
         'quantity_used.*' => 'required|integer|min:1',
+        'handling_type' => 'nullable|array',
+        'handling_type.*' => 'required|in:consumed,returnable',
         'no_materials_used' => 'nullable|boolean',
     ]);
 
@@ -277,6 +304,10 @@ public function updateRequest(Request $request, $id)
             ->withErrors(['materials' => 'Enter a quantity for every selected material.']);
     }
 
+    if ($isCompleting && $itemIds && count($itemIds) !== count($validated['handling_type'] ?? [])) {
+        return back()->withInput()->withErrors(['materials' => 'Choose whether each item is consumed or returnable.']);
+    }
+
     DB::transaction(function () use (
         $maintenance,
         $oldStatus,
@@ -287,63 +318,8 @@ public function updateRequest(Request $request, $id)
         $itemIds,
         $noMaterialsUsed
     ) {
-        // Serialize start attempts for this personnel account. This prevents
-        // two browser tabs/requests from starting two jobs at the same time.
-        User::whereKey(Auth::id())->lockForUpdate()->firstOrFail();
-
-        $lockedMaintenance = MaintenanceRequest::whereKey($maintenance->id)
-            ->lockForUpdate()
-            ->firstOrFail();
-
-        if ((int) $lockedMaintenance->assigned_to !== (int) Auth::id()) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'status' => 'This request is no longer assigned to your account. Refresh the page.',
-            ]);
-        }
-
-        if ($lockedMaintenance->status !== $oldStatus) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'status' => 'This request has changed since you opened it. Refresh the page before updating it.',
-            ]);
-        }
-
-        if ($newStatus === 'in_progress' && $oldStatus === 'approved') {
-            $alreadyWorking = MaintenanceRequest::where('assigned_to', Auth::id())
-                ->where('status', 'in_progress')
-                ->where('id', '!=', $lockedMaintenance->id)
-                ->exists();
-
-            if ($alreadyWorking) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'status' => 'You already have a task in progress. Complete your current task before starting another assigned request.',
-                ]);
-            }
-        }
-
-        // Use the locked record for all changes made in this transaction.
-        $maintenance = $lockedMaintenance;
-
         $statusChanged = $oldStatus !== $newStatus;
         $logRemarks = $remarks;
-
-        if ($isCompleting && $noMaterialsUsed) {
-            $logRemarks = trim($logRemarks . "\nMaterials used: None.");
-        } elseif ($isCompleting && $itemIds) {
-            $itemsById = InventoryItem::whereIn('id', $itemIds)->get()->keyBy('id');
-            $summary = [];
-
-            foreach ($itemIds as $index => $itemId) {
-                $item = $itemsById->get($itemId);
-                if ($item) {
-                    $quantity = (int) ($validated['quantity_used'][$index] ?? 0);
-                    $summary[] = "{$item->name} — {$quantity} {$item->unit}";
-                }
-            }
-
-            if ($summary) {
-                $logRemarks = trim($logRemarks . "\nMaterials used: " . implode(', ', $summary) . '.');
-            }
-        }
 
         $maintenance->status = $newStatus;
 
@@ -387,7 +363,7 @@ public function updateRequest(Request $request, $id)
                 $previousQuantity = $item->quantity;
                 $item->decrement('quantity', $quantityUsed);
 
-                InventoryUsage::create([
+                $usage = InventoryUsage::create([
                     'request_id' => $maintenance->id,
                     'item_id' => $item->id,
                     'quantity_used' => $quantityUsed,
@@ -396,6 +372,23 @@ public function updateRequest(Request $request, $id)
                 ]);
 
                 $item->refresh();
+
+                $handlingType = $validated['handling_type'][$index] ?? 'consumed';
+                RequestLog::create([
+                    'request_id' => $maintenance->id,
+                    'status' => 'completed',
+                    'action' => 'materials_issued',
+                    'remarks' => json_encode([
+                        'version' => 1,
+                        'usage_id' => $usage->id,
+                        'item_id' => $item->id,
+                        'item_name' => $item->name,
+                        'unit' => $item->unit,
+                        'quantity_issued' => $quantityUsed,
+                        'handling_type' => $handlingType,
+                    ]),
+                    'updated_by' => Auth::id(),
+                ]);
 
                 $crossedLow = $previousQuantity > $item->minimum_stock
                     && $item->quantity <= $item->minimum_stock;
@@ -453,4 +446,103 @@ public function updateRequest(Request $request, $id)
         ->route('viewRequest.personnel', $maintenance->id)
         ->with('success', 'Request update saved successfully.');
 }
+
+public function returnMaterials(Request $request, $id)
+{
+    $maintenance = MaintenanceRequest::where('assigned_to', auth()->id())
+        ->where('status', 'completed')
+        ->findOrFail($id);
+
+    $validated = $request->validate([
+        'returns' => 'required|array|min:1',
+        'returns.*.usage_id' => 'required|integer|distinct|exists:inventory_usages,id',
+        'returns.*.quantity' => 'required|integer|min:1',
+        'return_remarks' => 'nullable|string|max:2000',
+    ]);
+
+    DB::transaction(function () use ($maintenance, $validated) {
+        $issuedLogs = RequestLog::where('request_id', $maintenance->id)
+            ->where('action', 'materials_issued')
+            ->lockForUpdate()
+            ->get();
+
+        $issued = [];
+        foreach ($issuedLogs as $log) {
+            $data = json_decode($log->remarks, true);
+            if (is_array($data) && ($data['handling_type'] ?? null) === 'returnable') {
+                $issued[(int) $data['usage_id']] = $data;
+            }
+        }
+
+        $alreadyReturned = [];
+        $returnLogs = RequestLog::where('request_id', $maintenance->id)
+            ->where('action', 'materials_returned')
+            ->lockForUpdate()
+            ->get();
+
+        foreach ($returnLogs as $log) {
+            $data = json_decode($log->remarks, true);
+            foreach (($data['items'] ?? []) as $entry) {
+                $usageId = (int) ($entry['usage_id'] ?? 0);
+                $quantity = (int) ($entry['quantity'] ?? (
+                    (int) ($entry['good'] ?? 0) +
+                    (int) ($entry['damaged'] ?? 0) +
+                    (int) ($entry['missing'] ?? 0)
+                ));
+                $alreadyReturned[$usageId] = ($alreadyReturned[$usageId] ?? 0) + $quantity;
+            }
+        }
+
+        $entries = [];
+        foreach ($validated['returns'] as $row) {
+            $usageId = (int) $row['usage_id'];
+            if (!isset($issued[$usageId])) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'returns' => 'One or more selected items are not marked as returnable for this request.',
+                ]);
+            }
+
+            $usage = InventoryUsage::where('request_id', $maintenance->id)
+                ->whereKey($usageId)
+                ->firstOrFail();
+
+            $quantity = (int) $row['quantity'];
+            $remaining = (int) $usage->quantity_used - ($alreadyReturned[$usageId] ?? 0);
+
+            if ($quantity > $remaining) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'returns' => "Return quantity for {$usage->item?->name} cannot exceed the outstanding quantity ({$remaining}).",
+                ]);
+            }
+
+            $item = InventoryItem::whereKey($usage->item_id)->lockForUpdate()->firstOrFail();
+            $item->increment('quantity', $quantity);
+
+            $entries[] = [
+                'usage_id' => $usageId,
+                'item_id' => $usage->item_id,
+                'item_name' => $issued[$usageId]['item_name'] ?? $usage->item?->name,
+                'unit' => $issued[$usageId]['unit'] ?? $usage->item?->unit,
+                'quantity' => $quantity,
+            ];
+        }
+
+        RequestLog::create([
+            'request_id' => $maintenance->id,
+            'status' => 'completed',
+            'action' => 'materials_returned',
+            'remarks' => json_encode([
+                'version' => 2,
+                'items' => $entries,
+                'notes' => trim($validated['return_remarks'] ?? ''),
+                'recorded_at' => now()->toDateTimeString(),
+            ]),
+            'updated_by' => Auth::id(),
+        ]);
+    });
+
+    return redirect()->route('viewRequest.personnel', $maintenance->id)
+        ->with('success', 'Returned materials have been added back to inventory.');
+}
+
 }

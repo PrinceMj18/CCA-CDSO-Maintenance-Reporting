@@ -326,6 +326,75 @@
 
     </section>
 
+
+    @if($requestData->status === 'completed')
+        @php
+            $returnableUsages = $requestData->inventoryUsages
+                ->filter(fn ($usage) => isset($issuedMaterialMeta[$usage->id]))
+                ->values();
+            $outstandingReturnUsages = $returnableUsages->filter(function ($usage) use ($materialReturnTotals) {
+                $returned = (int) ($materialReturnTotals[$usage->id]['quantity'] ?? 0);
+                return $returned < (int) $usage->quantity_used;
+            });
+        @endphp
+
+        <section class="mt-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                <h2 class="text-sm font-bold text-gray-900 dark:text-white">Return Materials</h2>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Enter the quantity being returned. Add remarks if an item is damaged, missing, or needs attention.
+                </p>
+            </div>
+
+            <div class="p-5">
+                @if($returnableUsages->isEmpty())
+                    <div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/30 p-4">
+                        <p class="text-sm font-semibold text-gray-700 dark:text-gray-200">No returnable materials recorded</p>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Only items marked Returnable when the request was completed can be returned here.</p>
+                    </div>
+                @elseif($outstandingReturnUsages->isEmpty())
+                    <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+                        <p class="text-sm font-semibold text-emerald-800 dark:text-emerald-300">All returnable quantities have been recorded.</p>
+                    </div>
+                @else
+                    <form method="POST" action="{{ route('returnMaterials.personnel', $requestData->id) }}" class="space-y-4">
+                        @csrf
+                        @foreach($outstandingReturnUsages as $usage)
+                            @php
+                                $returned = (int) ($materialReturnTotals[$usage->id]['quantity'] ?? 0);
+                                $remaining = (int) $usage->quantity_used - $returned;
+                            @endphp
+                            <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                                <input type="hidden" name="returns[{{ $usage->id }}][usage_id]" value="{{ $usage->id }}">
+                                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                        <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $usage->item?->name ?? ($issuedMaterialMeta[$usage->id]['item_name'] ?? 'Inventory item') }}</p>
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Issued: {{ $usage->quantity_used }} {{ $usage->item?->unit ?? ($issuedMaterialMeta[$usage->id]['unit'] ?? '') }} · Already returned: {{ $returned }}</p>
+                                    </div>
+                                    <span class="inline-flex w-fit rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-950/30 dark:text-amber-300">{{ $remaining }} remaining</span>
+                                </div>
+                                <div class="mt-3 max-w-xs">
+                                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">Quantity to return</label>
+                                    <input type="number" name="returns[{{ $usage->id }}][quantity]" min="1" max="{{ $remaining }}" step="1" value="{{ $remaining }}" required
+                                        class="w-full min-h-11 rounded-lg border-gray-200 bg-gray-50 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-emerald-500">
+                                </div>
+                            </div>
+                        @endforeach
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">Remarks (optional)</label>
+                            <textarea name="return_remarks" rows="2" maxlength="2000" placeholder="Add notes about the returned materials, such as damaged or missing items..."
+                                class="w-full rounded-xl border-gray-200 bg-gray-50 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+                        </div>
+                        <div class="flex justify-end">
+                            <button type="submit" class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">Add Back to Inventory</button>
+                        </div>
+                    </form>
+                @endif
+            </div>
+        </section>
+    @endif
+
     <section class="mt-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
 
         <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
@@ -361,9 +430,35 @@
                             </div>
 
                             @if($log->remarks)
+                                @php
+                                    $logMeta = json_decode($log->remarks, true);
+                                @endphp
 
-                                <p class="mt-2 text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line">{{ $log->remarks }}</p>
-
+                                @if($log->action === 'materials_returned' && is_array($logMeta))
+                                    <div class="mt-2 space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <p class="font-medium">Materials returned:</p>
+                                        <ul class="list-disc pl-5 space-y-1">
+                                            @foreach(($logMeta['items'] ?? []) as $returnedItem)
+                                                <li>
+                                                    {{ $returnedItem['item_name'] ?? 'Inventory item' }} —
+                                                    {{ $returnedItem['quantity'] ?? 0 }}
+                                                    {{ $returnedItem['unit'] ?? '' }}
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                        @if(!empty($logMeta['notes']))
+                                            <p><span class="font-semibold">Remarks:</span> {{ $logMeta['notes'] }}</p>
+                                        @endif
+                                    </div>
+                                @elseif($log->action === 'materials_issued' && is_array($logMeta))
+                                    <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                                        Material issued: {{ $logMeta['item_name'] ?? 'Inventory item' }} —
+                                        {{ $logMeta['quantity_issued'] ?? 0 }} {{ $logMeta['unit'] ?? '' }}
+                                        ({{ ucfirst($logMeta['handling_type'] ?? 'consumed') }})
+                                    </p>
+                                @else
+                                    <p class="mt-2 text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line">{{ $log->remarks }}</p>
+                                @endif
                             @endif
 
                         </div>
@@ -537,7 +632,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const row = document.createElement('div');
 
-        row.className = 'grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_140px_auto] gap-3 items-stretch';
+        row.className = 'grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_120px_160px_auto] gap-3 items-stretch';
 
         // Searchable material field.
         const searchWrapper = document.createElement('div');
@@ -640,6 +735,28 @@ document.addEventListener('DOMContentLoaded', function () {
         quantity.placeholder = 'Qty';
         quantity.className = 'w-full min-h-12 rounded-xl border-gray-200 bg-gray-50 px-4 py-3 text-base focus:border-indigo-500 focus:ring-indigo-500';
 
+        const handlingType = document.createElement('select');
+        handlingType.name = 'handling_type[]';
+        handlingType.required = true;
+        handlingType.className = 'w-full min-h-12 rounded-xl border-gray-200 bg-gray-50 px-3 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500';
+        handlingType.setAttribute('aria-label', 'Material handling type');
+
+        const handlingPlaceholder = document.createElement('option');
+        handlingPlaceholder.value = '';
+        handlingPlaceholder.textContent = 'Select type';
+        handlingPlaceholder.disabled = true;
+        handlingPlaceholder.selected = true;
+
+        const consumedOption = document.createElement('option');
+        consumedOption.value = 'consumed';
+        consumedOption.textContent = 'Consumed';
+
+        const returnableOption = document.createElement('option');
+        returnableOption.value = 'returnable';
+        returnableOption.textContent = 'Returnable';
+
+        handlingType.append(handlingPlaceholder, consumedOption, returnableOption);
+
         const remove = document.createElement('button');
         remove.type = 'button';
         remove.textContent = 'Remove';
@@ -648,7 +765,7 @@ document.addEventListener('DOMContentLoaded', function () {
             openRemoveMaterialModal(() => row.remove());
         });
 
-        row.append(searchWrapper, quantity, remove);
+        row.append(searchWrapper, quantity, handlingType, remove);
         container.appendChild(row);
     }
 

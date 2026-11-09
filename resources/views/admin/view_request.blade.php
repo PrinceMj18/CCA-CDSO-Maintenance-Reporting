@@ -570,38 +570,97 @@
         </div>
 
         <div class="p-5">
-            @forelse($requestData->logs->sortByDesc('created_at') as $log)
-                <div class="timeline-item relative pl-8 pb-6 last:pb-0">
-                    @if(!$loop->last)
-                        <span class="absolute left-[7px] top-4 bottom-0 w-px bg-gray-200"></span>
-                    @endif
-                    <span class="absolute left-0 top-1 w-4 h-4 rounded-full border-2 border-white shadow-sm bg-indigo-500"></span>
+            
+@forelse($requestData->logs->sortByDesc('created_at') as $log)
+    @php
+        $logData = json_decode($log->remarks, true);
+        $isMaterialLog = in_array($log->action, [
+            'materials_issued',
+            'materials_returned'
+        ], true) && is_array($logData);
 
-                    <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div>
-                            <div class="flex flex-wrap items-center gap-2">
-                                <span class="text-sm font-semibold text-gray-800 dark:text-white">
-                                    {{ $log->updatedBy?->fname }} {{ $log->updatedBy?->lname }}
-                                </span>
-                                <span class="px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 text-[10px] font-semibold uppercase">
-                                    {{ str_replace('_', ' ', $log->action ?? 'update') }}
-                                </span>
-                                @if($log->status)
-                                    <span class="px-2 py-0.5 rounded-md {{ $statusStyles[$log->status] ?? 'bg-gray-50 text-gray-600 border-gray-200' }} text-[10px] font-semibold">
-                                        {{ ucfirst(str_replace('_', ' ', $log->status)) }}
-                                    </span>
-                                @endif
-                            </div>
-                            @if($log->remarks)
-                                <p class="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-300 whitespace-pre-line">{{ $log->remarks }}</p>
-                            @endif
-                        </div>
-                        <time class="text-[11px] text-gray-400 whitespace-nowrap">{{ $log->created_at?->format('M d, Y h:i A') }}</time>
-                    </div>
+        $actionLabel = match ($log->action) {
+            'materials_issued' => 'Materials Issued',
+            'materials_returned' => 'Materials Returned',
+            'status_update' => 'Status Update',
+            default => ucfirst(str_replace('_', ' ', $log->action ?? 'update')),
+        };
+    @endphp
+
+    <div class="timeline-item relative pl-8 pb-6 last:pb-0">
+        @if(!$loop->last)
+            <span class="absolute left-[7px] top-4 bottom-0 w-px bg-gray-200"></span>
+        @endif
+
+        <span class="absolute left-0 top-1 w-4 h-4 rounded-full border-2 border-white shadow-sm bg-indigo-500"></span>
+
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-sm font-semibold text-gray-800 dark:text-white">
+                        {{ $log->updatedBy?->fname }} {{ $log->updatedBy?->lname }}
+                    </span>
+
+                    <span class="inline-flex px-2 py-1 rounded-md bg-gray-100 text-gray-600 text-[10px] font-semibold uppercase">
+                        {{ $actionLabel }}
+                    </span>
+
+                    @if($log->status)
+                        <span class="inline-flex px-2 py-1 rounded-md text-[10px] font-semibold {{ $statusStyles[$log->status] ?? 'bg-gray-50 text-gray-600 border border-gray-200' }}">
+                            {{ ucfirst(str_replace('_', ' ', $log->status)) }}
+                        </span>
+                    @endif
                 </div>
-            @empty
-                <div class="py-8 text-center text-sm text-gray-400">No activity has been recorded yet.</div>
-            @endforelse
+
+                @if($isMaterialLog)
+                    <div class="mt-3 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                        <p class="text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                            {{ $log->action === 'materials_issued' ? 'Issued materials' : 'Returned materials' }}
+                        </p>
+
+                        @if($log->action === 'materials_issued')
+                            <p class="text-sm text-gray-600 dark:text-gray-300">
+                                {{ $logData['item_name'] ?? 'Inventory item' }}
+                                — {{ $logData['quantity_issued'] ?? 0 }}
+                                {{ $logData['unit'] ?? '' }}
+                                <span class="text-xs text-gray-400">
+                                    ({{ ucfirst($logData['handling_type'] ?? 'consumed') }})
+                                </span>
+                            </p>
+                        @else
+                            @foreach(($logData['items'] ?? []) as $item)
+                                <p class="text-sm text-gray-600 dark:text-gray-300">
+                                    {{ $item['item_name'] ?? 'Inventory item' }}
+                                    — {{ $item['quantity'] ?? 0 }}
+                                    {{ $item['unit'] ?? '' }}
+                                </p>
+                            @endforeach
+
+                            @if(!empty($logData['notes']))
+                                <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                                    <strong>Remarks:</strong> {{ $logData['notes'] }}
+                                </p>
+                            @endif
+                        @endif
+                    </div>
+                @elseif($log->remarks)
+                    <p class="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-300 whitespace-pre-line">
+                        {{ $log->remarks }}
+                    </p>
+                @endif
+            </div>
+
+            <time class="text-[11px] text-gray-400 whitespace-nowrap">
+                {{ $log->created_at?->format('M d, Y h:i A') }}
+            </time>
+        </div>
+    </div>
+@empty
+    <div class="py-8 text-center text-sm text-gray-400">
+        No activity has been recorded yet.
+    </div>
+@endforelse
+
         </div>
     </section>
 

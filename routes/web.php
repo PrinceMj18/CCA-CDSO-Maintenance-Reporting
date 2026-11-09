@@ -105,5 +105,7 @@ Route::middleware(['auth', 'personnel'])->group(function () {
     ->name('viewRequest.personnel');
     Route::put('/update-request/personnel/{id}', [PersonnelController::class, 'updateRequest'])
     ->name('updateRequest.personnel');
+    Route::post('/return-materials/personnel/{id}', [PersonnelController::class, 'returnMaterials'])
+    ->name('returnMaterials.personnel');
 });
 
