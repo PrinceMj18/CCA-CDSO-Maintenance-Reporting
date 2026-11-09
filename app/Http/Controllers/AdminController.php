@@ -444,127 +444,7 @@ private function buildDashboardTrend(string $period, $baseQuery, Carbon $now): a
 
 
 
-    public function createAccount()
-    {
-        $allowedRoles = auth()->user()->role->name === 'superadmin' ? ['user', 'personnel', 'admin'] : ['user', 'personnel'];
-        $roles = Role::whereIn('name', $allowedRoles)->orderBy('name')->get();
-        return view('admin.create-account', compact('roles'));
-    }
 
-    public function register(Request $request)
-    {
-        $validated = $request->validate([
-            'fname' => 'required|string|max:50',
-            'lname' => 'required|string|max:50',
-            'designation' => 'nullable|in:CDSO Head,Utility Supervisor,Supply Officer,Office Secretary,Maintenance,Utility,Gardener,Gardener/Utility,Team Leader',
-            'email' => ['required', 'email', 'unique:users,email', 'regex:/^[A-Za-z0-9._%+-]+@cca\.edu\.ph$/'],
-            'password' => 'required|string|min:8|confirmed',
-            'role_id' => 'required|exists:roles,id',
-        ]);
-
-        $allowedRoles = auth()->user()->role->name === 'superadmin' ? ['user', 'personnel', 'admin'] : ['user', 'personnel'];
-        $role = Role::whereIn('name', $allowedRoles)->whereKey($validated['role_id'])->firstOrFail();
-// Require a designation for personnel accounts.
-if ($role->name === 'personnel' && empty($validated['designation'])) {
-    return back()
-        ->withInput()
-        ->withErrors([
-            'designation' => 'Please select the personnel designation.',
-        ]);
-}
-
-// Append designation to the last name without changing the database structure.
-$displayLastName = $validated['lname'];
-
-if ($role->name === 'personnel') {
-    $displayLastName .= ' (' . $validated['designation'] . ')';
-}
-
-// Ensure the combined value fits the existing last-name limit.
-if (mb_strlen($displayLastName) > 50) {
-    return back()
-        ->withInput()
-        ->withErrors([
-            'designation' => 'The last name and designation together must not exceed 50 characters.',
-        ]);
-}
-
-
-        User::create([
-            'fname' => $validated['fname'],
-            'lname' => $displayLastName,
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'role_id' => $role->id,
-            'status' => 'approved',
-        ]);
-
-        $destination = auth()->user()->role->name === 'superadmin' ? 'acc_superadmin' : 'accountsmanagement';
-        return redirect()->route($destination)->with('success', 'Account created successfully.');
-    }
-
-    public function accManagement()
-    {
-        $users = User::with('role')->latest()->get(); // get all users with roles
-        return view('admin.accounts', compact('users'));
-    }
-
-    public function editAccount(Request $request, $id)
-    {
-        $user = User::findOrFail($id);
-        $roles = Role::all();
-
-        return view('admin.edit', compact('user', 'roles'));
-    }
-
-    public function updateAccount(Request $request, $id)
-    {
-        $user = User::findOrFail($id);
-
-        // validate input
-        $validated = $request->validate([
-            'fname' => 'required|string|max:50',
-            'lname' => 'required|string|max:50',
-            'email' => 'required|email|unique:users,email,' . $id,
-            'role_id' => 'required|exists:roles,id',
-            'password' => 'nullable|min:6',
-        ]);
-
-        // update basic fields
-        $user->fname = $validated['fname'];
-        $user->lname = $validated['lname'];
-        $user->email = $validated['email'];
-        $user->role_id = $validated['role_id'];
-
-        // update password ONLY if filled
-        if (!empty($validated['password'])) {
-            $user->password = Hash::make($validated['password']);
-        }
-
-        $user->save();
-
-        return redirect()->route('accountsmanagement')
-            ->with('success', 'User updated successfully!');
-    }
-    public function destroyAccount($id)
-    {
-        $user = User::findOrFail($id);
-
-        if ((int) auth()->id() === (int) $user->id) {
-            return redirect()->back()->with('error', 'You cannot archive your own account.');
-        }
-        if (!in_array($user->role->name ?? '', ['user', 'personnel'], true)) {
-            return redirect()->back()->with('error', 'Administrators can archive User and Personnel accounts only.');
-        }
-
-        // Soft deletion archives the account while preserving historical requests and logs.
-        $user->delete();
-
-        return redirect()->back()->with(
-            'success',
-            'Account archived successfully.'
-        );
-    }
 
     public function maintenanceRequest(Request $request)
     {
@@ -672,23 +552,40 @@ $perPage = (int) $request->input('per_page', 5);
             'inventoryUsages.user',
         ])->findOrFail($id);
 
+        $activePersonnelIds = MaintenanceRequest::where('status', 'in_progress')
+            ->whereNotNull('assigned_to')
+            ->where('id', '!=', $requestData->id)
+            ->pluck('assigned_to')
+            ->unique()
+            ->values();
+
         $personnels = User::whereHas('role', function ($query) {
             $query->where('name', 'personnel');
         })->orderBy('fname')->orderBy('lname')->get();
 
-        return view('admin.view_request', compact('requestData', 'personnels'));
+        return view('admin.view_request', compact(
+            'requestData',
+            'personnels',
+            'activePersonnelIds'
+        ));
     }
 
     public function updateRequest(Request $request, $id)
     {
         $validated = $request->validate([
-            'action' => 'required|in:approve,reject,save',
+            'action' => 'required|in:approve,reject,save,pull_back',
             'priority' => 'required|in:low,medium,high',
             'assigned_to' => 'nullable|integer|exists:users,id',
             'remarks' => 'nullable|string|max:5000',
         ]);
 
         $remarks = trim((string) ($validated['remarks'] ?? ''));
+        if ($validated['action'] === 'pull_back' && $remarks === '') {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'remarks' => 'Please provide a reason for pulling back this assignment.',
+            ]);
+        }
+
         $message = 'Request update saved successfully.';
 
         DB::transaction(function () use ($id, $validated, $remarks, &$message) {
@@ -726,6 +623,15 @@ $perPage = (int) $request->input('per_page', 5);
 
                 $newStatus = 'rejected';
                 $newAssignedTo = null;
+            } elseif ($validated['action'] === 'pull_back') {
+                if (!in_array($oldStatus, ['approved', 'in_progress'], true) || !$oldAssignedTo) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'action' => 'This request does not have an active personnel assignment to pull back.',
+                    ]);
+                }
+
+                $newAssignedTo = null;
+                $newStatus = 'pending';
             } else {
                 if ($oldStatus === 'pending' && !empty($validated['assigned_to'])) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
@@ -740,26 +646,41 @@ $perPage = (int) $request->input('per_page', 5);
                     $newAssignedTo = null;
                 } elseif (in_array($oldStatus, ['approved', 'in_progress'], true)) {
                     if (filled($validated['assigned_to'] ?? null)) {
-                        // Reassignment is allowed while work is active; preserve status.
+                        if (
+                            $oldStatus === 'in_progress'
+                            && (int) $validated['assigned_to'] !== (int) $oldAssignedTo
+                        ) {
+                            throw \Illuminate\Validation\ValidationException::withMessages([
+                                'assigned_to' => 'This request is already In Progress. Pull back the current assignment first, then approve and assign it again.',
+                            ]);
+                        }
+
+                        // Admins may queue multiple approved requests for the same personnel.
+                        // The personnel workflow separately prevents starting a second task
+                        // while another request is already In Progress.
                         $newAssignedTo = (int) $validated['assigned_to'];
-                    } else {
-                        // Clearing personnel pulls the request back to the pending queue.
-                        $newAssignedTo = null;
-                        $newStatus = 'pending';
+                    } elseif ($oldAssignedTo) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'assigned_to' => 'Use the Pull Back Assignment action to remove the current personnel and return this request to Pending.',
+                        ]);
                     }
                 }
             }
 
             if ($newAssignedTo) {
-                $isPersonnel = User::whereKey($newAssignedTo)
-                    ->whereHas('role', fn ($q) => $q->where('name', 'personnel'))
-                    ->exists();
+                $personnelAccount = User::whereKey($newAssignedTo)->first();
+
+                $isPersonnel = $personnelAccount
+                    && $personnelAccount->role()
+                        ->where('name', 'personnel')
+                        ->exists();
 
                 if (!$isPersonnel) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
                         'assigned_to' => 'The selected account is not an active maintenance personnel account.',
                     ]);
                 }
+
             }
 
             if ($oldStatus === 'completed' && $newAssignedTo !== $oldAssignedTo) {
@@ -808,7 +729,7 @@ $perPage = (int) $request->input('per_page', 5);
                     'remarks' => match ($newStatus) {
                         'approved' => 'Request approved.',
                         'rejected' => 'Request rejected.',
-                        'pending' => 'Request returned to Pending after personnel assignment was removed.',
+                        'pending' => 'Request returned to Pending after the assignment was pulled back by admin.',
                         default => 'Request status updated.',
                     },
                     'updated_by' => Auth::id(),
@@ -816,15 +737,18 @@ $perPage = (int) $request->input('per_page', 5);
             }
 
             if ($assignmentChanged) {
+                $previousPersonnel = $oldAssignedTo ? User::find($oldAssignedTo) : null;
+                $assignmentLogRemarks = $validated['action'] === 'pull_back'
+                    ? 'Assignment pulled back from ' . trim(($previousPersonnel?->fname ?? '') . ' ' . ($previousPersonnel?->lname ?? '')) . '. Reason: ' . $remarks
+                    : ($newAssignedTo
+                        ? ($oldAssignedTo ? 'Maintenance request reassigned to another personnel.' : 'Maintenance personnel assigned.')
+                        : 'Personnel assignment removed.');
+
                 RequestLog::create([
                     'request_id' => $maintenance->id,
                     'status' => $newStatus,
-                    'action' => 'assignment',
-                    // Assignment history records the assignment event, not the
-                    // free-text remark (which is logged once as a comment below).
-                    'remarks' => $newAssignedTo
-                        ? ($oldAssignedTo ? 'Maintenance request reassigned to another personnel.' : 'Maintenance personnel assigned.')
-                        : 'Personnel assignment removed.',
+                    'action' => $validated['action'] === 'pull_back' ? 'pull_back' : 'assignment',
+                    'remarks' => $assignmentLogRemarks,
                     'updated_by' => Auth::id(),
                 ]);
             }
@@ -839,7 +763,7 @@ $perPage = (int) $request->input('per_page', 5);
                 ]);
             }
 
-            if ($remarks !== '') {
+            if ($remarks !== '' && $validated['action'] !== 'pull_back') {
                 RequestLog::create([
                     'request_id' => $maintenance->id,
                     'status' => $newStatus,
@@ -869,7 +793,7 @@ $perPage = (int) $request->input('per_page', 5);
                     $oldPersonnel = User::find($oldAssignedTo);
 
                     if ($oldPersonnel) {
-                        $wasPulledBack = !$newAssignedTo;
+                        $wasPulledBack = $validated['action'] === 'pull_back';
 
                         $oldPersonnel->notify(new \App\Notifications\SystemNotification(
                             $wasPulledBack ? 'Maintenance request pulled back' : 'Maintenance request reassigned',
@@ -908,11 +832,11 @@ $perPage = (int) $request->input('per_page', 5);
             if (!$statusChanged && !$assignmentChanged && !$priorityChanged && $remarks === '') {
                 $message = 'No changes were needed; the request is already up to date.';
             } elseif ($assignmentChanged && $oldAssignedTo && $newAssignedTo) {
-                $message = 'Request reassigned successfully. The previous personnel no longer has it in their active list.';
-            } elseif ($assignmentChanged && $oldAssignedTo && !$newAssignedTo && $newStatus === 'pending') {
-                $message = 'Personnel removed successfully. The request has been returned to Pending.';
+                $message = 'Request reassigned successfully. The new personnel can work on it when their current task is finished.';
+            } elseif ($validated['action'] === 'pull_back' && $assignmentChanged && $newStatus === 'pending') {
+                $message = 'Assignment pulled back successfully. The request has been returned to Pending, and the personnel is available for another task.';
             } elseif ($statusChanged && $newStatus === 'approved') {
-                $message = 'Request approved and personnel assigned successfully.';
+                $message = 'Request approved and assigned successfully. The personnel can start it when they are available.';
             } elseif ($statusChanged && $newStatus === 'rejected') {
                 $message = 'Request rejected successfully.';
             } else {

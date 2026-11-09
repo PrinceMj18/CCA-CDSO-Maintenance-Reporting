@@ -2,16 +2,16 @@
     <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
             <h2 class="text-2xl font-semibold text-gray-800 dark:text-white">Your Work Dashboard</h2>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Hi {{ auth()->user()->fname }} — here are the jobs and updates that need your attention.</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Manage your current task and the assigned requests waiting in your queue.</p>
         </div>
-        <a href="{{ route('maintenanceRequest.personnel') }}" class="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">View all assigned requests</a>
+        <a href="{{ route('maintenanceRequest.personnel') }}" class="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">View assigned tasks</a>
     </div>
 
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Active assignments</p>
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Assigned tasks</p>
             <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{{ $activeCount ?? 0 }}</p>
-            <p class="mt-1 text-xs text-gray-500">Approved and in-progress jobs</p>
+            <p class="mt-1 text-xs text-gray-500">Your current task and upcoming assignments</p>
         </div>
         <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Ready to start</p>
@@ -24,9 +24,9 @@
             <p class="mt-1 text-xs text-gray-500">Jobs already being worked on</p>
         </div>
         <div class="rounded-xl border border-amber-200 bg-amber-50 p-5 shadow-sm dark:border-amber-900 dark:bg-amber-950/30">
-            <p class="text-sm font-medium text-amber-800 dark:text-amber-300">High-priority active jobs</p>
+            <p class="text-sm font-medium text-amber-800 dark:text-amber-300">High-priority assigned tasks</p>
             <p class="mt-2 text-3xl font-bold text-amber-700 dark:text-amber-300">{{ $highPriorityCount ?? 0 }}</p>
-            <p class="mt-1 text-xs text-amber-700/80 dark:text-amber-300/80">Review these first</p>
+            <p class="mt-1 text-xs text-amber-700/80 dark:text-amber-300/80">Prioritize these when starting your next task</p>
         </div>
     </div>
 
@@ -34,48 +34,78 @@
         <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800 xl:col-span-2">
             <div class="flex items-start justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-700">
                 <div>
-                    <h3 class="font-semibold text-gray-900 dark:text-white">Your work queue</h3>
-                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Active jobs are sorted to surface in-progress and high-priority work first.</p>
+                    <h3 class="font-semibold text-gray-900 dark:text-white">Current task & upcoming assignments</h3>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">You may have several assigned requests, but only one can be In Progress at a time.</p>
                 </div>
-                <span class="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">{{ $workQueue->count() }} shown</span>
+                <span class="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">{{ $workQueue->count() }} assigned</span>
             </div>
-            <div class="divide-y divide-gray-100 dark:divide-gray-700">
-                @forelse($workQueue as $work)
-                    <a href="{{ route('viewRequest.personnel', $work->id) }}" class="block px-5 py-4 transition hover:bg-gray-50 dark:hover:bg-gray-700/40">
-                        <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                            <div class="min-w-0">
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <span class="font-mono text-xs font-semibold text-indigo-600 dark:text-indigo-300">{{ $work->ticket_number }}</span>
-                                    <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold {{ $work->status === 'in_progress' ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' }}">{{ $work->status === 'in_progress' ? 'In progress' : 'Ready to start' }}</span>
-                                    @if($work->priority === 'high')
-                                        <span class="rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-700 dark:bg-rose-900/40 dark:text-rose-300">High priority</span>
-                                    @endif
-                                </div>
-                                <p class="mt-1 truncate font-semibold text-gray-900 dark:text-white">{{ $work->title }}</p>
-                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $work->location }} · {{ $work->category }}</p>
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Requested by {{ trim(($work->user?->fname ?? '').' '.($work->user?->lname ?? '')) ?: 'Requester' }} · Submitted {{ $work->created_at?->format('M d, Y') }}</p>
-                            </div>
-                            <span class="shrink-0 text-sm font-semibold text-indigo-600 dark:text-indigo-300">Open job →</span>
+            <div class="p-5 space-y-4">
+                @if($currentWork)
+                    <div class="rounded-xl border border-[#607844]/30 bg-[#607844]/5 p-4 dark:bg-[#607844]/10">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="text-xs font-bold uppercase tracking-wide text-[#607844] dark:text-[#a9c18e]">Currently working on</span>
+                            <span class="rounded-full bg-violet-100 px-2.5 py-1 text-[11px] font-semibold text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">In Progress</span>
                         </div>
-                    </a>
-                @empty
-                    <div class="px-5 py-10 text-center">
-                        <p class="font-medium text-gray-800 dark:text-white">You're all caught up.</p>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">There are no active requests currently assigned to you.</p>
+                        <a href="{{ route('viewRequest.personnel', $currentWork->id) }}" class="mt-2 block">
+                            <span class="font-mono text-xs font-semibold text-indigo-600 dark:text-indigo-300">{{ $currentWork->ticket_number }}</span>
+                            <p class="mt-1 font-semibold text-gray-900 dark:text-white">{{ $currentWork->title }}</p>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $currentWork->location }} · {{ $currentWork->category }}</p>
+                            <span class="mt-3 inline-flex text-sm font-semibold text-[#607844] dark:text-[#a9c18e]">Open current task →</span>
+                        </a>
                     </div>
-                @endforelse
-            </div>
-            @if($workQueue->count() >= 8)
-                <div class="border-t border-gray-100 px-5 py-3 dark:border-gray-700">
-                    <a href="{{ route('maintenanceRequest.personnel') }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-300">See all assigned requests →</a>
+                @else
+                    <div class="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-center dark:border-gray-600 dark:bg-gray-700/30">
+                        <p class="font-semibold text-gray-800 dark:text-white">No task is currently in progress</p>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            @if(($approved ?? 0) > 0)
+                                You have approved assignments ready to start.
+                            @else
+                                You are currently available. No active assignment has been assigned to you.
+                            @endif
+                        </p>
+                    </div>
+                @endif
+
+                <div>
+                    <div class="mb-2 flex items-center justify-between gap-2">
+                        <h4 class="text-sm font-semibold text-gray-800 dark:text-white">Upcoming assigned tasks</h4>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ $approved ?? 0 }} waiting</span>
+                    </div>
+                    <div class="divide-y divide-gray-100 rounded-lg border border-gray-100 dark:divide-gray-700 dark:border-gray-700">
+                        @forelse($workQueue->where('status', 'approved') as $work)
+                            <a href="{{ route('viewRequest.personnel', $work->id) }}" class="block px-4 py-3 transition hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                    <div class="min-w-0">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <span class="font-mono text-xs font-semibold text-indigo-600 dark:text-indigo-300">{{ $work->ticket_number }}</span>
+                                            <span class="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Waiting to start</span>
+                                            @if($work->priority === 'high')
+                                                <span class="rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-700 dark:bg-rose-900/40 dark:text-rose-300">High priority</span>
+                                            @endif
+                                        </div>
+                                        <p class="mt-1 truncate text-sm font-semibold text-gray-900 dark:text-white">{{ $work->title }}</p>
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $work->location }} · {{ $work->category }} · Assigned {{ $work->assigned_at?->format('M d, Y') ?? $work->updated_at?->format('M d, Y') }}</p>
+                                    </div>
+                                    <span class="shrink-0 text-sm font-semibold text-indigo-600 dark:text-indigo-300">View details →</span>
+                                </div>
+                            </a>
+                        @empty
+                            <div class="px-4 py-5 text-center text-sm text-gray-500 dark:text-gray-400">
+                                No other assigned tasks are waiting.
+                            </div>
+                        @endforelse
+                    </div>
                 </div>
-            @endif
+            </div>
+            <div class="border-t border-gray-100 px-5 py-3 dark:border-gray-700">
+                <a href="{{ route('maintenanceRequest.personnel') }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-300">View all assigned tasks and history →</a>
+            </div>
         </section>
 
         <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <div class="border-b border-gray-100 px-5 py-4 dark:border-gray-700">
                 <h3 class="font-semibold text-gray-900 dark:text-white">Recent request updates</h3>
-                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Latest activity on jobs currently assigned to you.</p>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Latest updates for your current task.</p>
             </div>
             <div class="divide-y divide-gray-100 dark:divide-gray-700">
                 @forelse($recentActivity as $log)
@@ -91,7 +121,7 @@
                         <p class="mt-2 text-[11px] text-gray-400">{{ $log->created_at?->format('M d, Y · h:i A') }}</p>
                     </div>
                 @empty
-                    <div class="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">No updates on your assigned jobs yet.</div>
+                    <div class="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">No updates for your current task yet.</div>
                 @endforelse
             </div>
         </section>

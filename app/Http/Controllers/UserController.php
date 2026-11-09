@@ -123,86 +123,104 @@ if ($validated['location'] === 'Other') {
             'Request submitted successfully. Ticket Number: ' . $ticketNumber
         );
     }
-    public function trackReq(Request $request)
-    {
-        $user = auth()->user();
+    
+public function trackReq(Request $request)
+{
+    $user = auth()->user();
 
-        if ($user->role->name === 'admin') {
-            return redirect('/dashboard/admin');
-        }
-
-        $search = trim((string) $request->input('search', ''));
-        $status = $request->input('status', 'all');
-        $validStatuses = ['all', 'pending', 'approved', 'in_progress', 'completed', 'rejected'];
-
-        if (!in_array($status, $validStatuses, true)) {
-            $status = 'all';
-        }
-
-        // An exact ticket-number match takes priority over the selected status filter.
-        if ($search !== '') {
-            $exactTicket = MaintenanceRequest::where('user_id', $user->id)
-                ->where('ticket_number', $search)
-                ->first();
-
-            if ($exactTicket) {
-                $status = $exactTicket->status;
-            }
-        }
-
-        $query = MaintenanceRequest::with([
-            'logs.updatedBy',
-            'assignedPersonnel',
-            'inventoryUsages.item',
-        ])->where('user_id', $user->id);
-
-        if ($status !== 'all') {
-            $query->where('status', $status);
-        }
-
-        if ($search !== '') {
-            $like = '%' . addcslashes($search, '\\%_') . '%';
-
-            $query->where(function ($q) use ($like) {
-                $q->where('ticket_number', 'like', $like)
-                    ->orWhere('title', 'like', $like)
-                    ->orWhere('description', 'like', $like)
-                    ->orWhere('location', 'like', $like)
-                    ->orWhere('category', 'like', $like)
-                    ->orWhere('priority', 'like', $like);
-            });
-        }
-
-        if ($request->filled('category')) {
-            $query->where('category', $request->input('category'));
-        }
-
-        $requests = $query->latest()->paginate(5)->withQueryString();
-
-        $allRequests = MaintenanceRequest::where('user_id', $user->id)->get();
-        $pending = $allRequests->where('status', 'pending')->count();
-        $approved = $allRequests->where('status', 'approved')->count();
-        $inProgress = $allRequests->where('status', 'in_progress')->count();
-        $completed = $allRequests->where('status', 'completed')->count();
-        $total = $allRequests->count();
-
-        $categories = MaintenanceRequest::where('user_id', $user->id)
-            ->select('category')
-            ->distinct()
-            ->orderBy('category')
-            ->pluck('category');
-
-        return view('user.track_req', compact(
-            'requests',
-            'pending',
-            'approved',
-            'inProgress',
-            'completed',
-            'total',
-            'status',
-            'categories'
-        ));
+    if ($user->role->name === 'admin') {
+        return redirect('/dashboard/admin');
     }
+
+    $search = trim((string) $request->input('search', ''));
+    $status = $request->input('status', 'all');
+    $validStatuses = ['all', 'pending', 'approved', 'in_progress', 'completed', 'rejected'];
+
+    if (!in_array($status, $validStatuses, true)) {
+        $status = 'all';
+    }
+
+    // An exact ticket-number match takes priority over the selected status filter.
+    if ($search !== '') {
+        $exactTicket = MaintenanceRequest::where('user_id', $user->id)
+            ->where('ticket_number', $search)
+            ->first();
+
+        if ($exactTicket) {
+            $status = $exactTicket->status;
+        }
+    }
+
+    $query = MaintenanceRequest::with([
+        'logs.updatedBy',
+        'assignedPersonnel',
+        'inventoryUsages.item',
+    ])->where('user_id', $user->id);
+
+    if ($status !== 'all') {
+        $query->where('status', $status);
+    }
+
+    if ($search !== '') {
+        $like = '%' . addcslashes($search, '\\%_') . '%';
+
+        $query->where(function ($q) use ($like) {
+            $q->where('ticket_number', 'like', $like)
+                ->orWhere('title', 'like', $like)
+                ->orWhere('description', 'like', $like)
+                ->orWhere('location', 'like', $like)
+                ->orWhere('category', 'like', $like)
+                ->orWhere('priority', 'like', $like);
+        });
+    }
+
+    if ($request->filled('category')) {
+        $query->where('category', $request->input('category'));
+    }
+
+    $requests = $query->latest()->paginate(5)->withQueryString();
+
+    // Get all requests belonging to the logged-in user.
+    $allRequests = MaintenanceRequest::where('user_id', $user->id)->get();
+
+    // Count requests by status.
+    $pending = $allRequests->where('status', 'pending')->count();
+    $approved = $allRequests->where('status', 'approved')->count();
+    $inProgress = $allRequests->where('status', 'in_progress')->count();
+    $completed = $allRequests->where('status', 'completed')->count();
+    $rejected = $allRequests->where('status', 'rejected')->count();
+    $total = $allRequests->count();
+
+    // Counts for the mobile status dropdown.
+    $statusCounts = [
+        'all' => $total,
+        'pending' => $pending,
+        'approved' => $approved,
+        'in_progress' => $inProgress,
+        'completed' => $completed,
+        'rejected' => $rejected,
+    ];
+
+    $categories = MaintenanceRequest::where('user_id', $user->id)
+        ->select('category')
+        ->distinct()
+        ->orderBy('category')
+        ->pluck('category');
+
+    return view('user.track_req', compact(
+        'requests',
+        'pending',
+        'approved',
+        'inProgress',
+        'completed',
+        'rejected',
+        'total',
+        'status',
+        'categories',
+        'statusCounts'
+    ));
+}
+
 
     public function viewRequest($id)
     {

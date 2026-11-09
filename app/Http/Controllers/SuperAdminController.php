@@ -6,7 +6,9 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Role;
 use Illuminate\Support\Facades\Hash;
-
+use Illuminate\Support\Facades\DB;
+use App\Models\MaintenanceRequest;
+use App\Models\RequestLog;
 class SuperAdminController extends Controller
 {
     public function superadminDashboard()
@@ -71,6 +73,7 @@ class SuperAdminController extends Controller
     }
 
    
+
 public function update_account(Request $request, $id)
 {
     // Only authorized super administrators can update accounts.
@@ -80,32 +83,13 @@ public function update_account(Request $request, $id)
         403
     );
 
-    $user = User::with('role')->findOrFail($id);
-
-    // Protect superadmin accounts from being modified through this form.
-    abort_if(
-        $user->role?->name === 'superadmin',
-        403,
-        'Super Admin accounts cannot be modified here.'
-    );
-
-    // Normalize email before validation.
     $request->merge([
         'email' => mb_strtolower(trim((string) $request->input('email'))),
     ]);
 
     $validated = $request->validate([
-        'fname' => [
-            'required',
-            'string',
-            'max:50',
-        ],
-
-        'lname' => [
-            'required',
-            'string',
-            'max:50',
-        ],
+        'fname' => ['required', 'string', 'max:50'],
+        'lname' => ['required', 'string', 'max:50'],
 
         'email' => [
             'required',
@@ -115,18 +99,17 @@ public function update_account(Request $request, $id)
             \Illuminate\Validation\Rule::unique('users', 'email')->ignore($id),
         ],
 
-        // Superadmin cannot be assigned through this form.
         'role_id' => [
             'required',
             \Illuminate\Validation\Rule::exists('roles', 'id')
                 ->whereIn('name', ['user', 'personnel', 'admin']),
         ],
-// Personnel designation (stored as part of last name).
-'designation' => [
-    'nullable',
-    'in:CDSO Head,Utility Supervisor,Supply Officer,Office Secretary,Maintenance,Utility,Gardener,Gardener/Utility,Team Leader',
-],
-        // Password is optional when updating an account.
+
+        'designation' => [
+            'nullable',
+            'in:CDSO Head,Utility Supervisor,Supply Officer,Office Secretary,Maintenance,Utility,Gardener,Gardener/Utility,Team Leader',
+        ],
+
         'password' => [
             'nullable',
             'confirmed',
@@ -137,74 +120,189 @@ public function update_account(Request $request, $id)
         ],
     ]);
 
-  
-$selectedRole = Role::findOrFail($validated['role_id']);
+    $selectedRole = Role::findOrFail($validated['role_id']);
 
-$lastName = trim($validated['lname']);
+    $lastName = trim($validated['lname']);
 
-// Append designation for personnel accounts.
-if ($selectedRole->name === 'personnel') {
+    // Append designation for personnel accounts.
+    if ($selectedRole->name === 'personnel') {
 
-    if (empty($validated['designation'])) {
+        if (empty($validated['designation'])) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'designation' => 'Please select a personnel designation.',
+                ]);
+        }
+
+        $lastName .= ' (' . $validated['designation'] . ')';
+    }
+
+    // Ensure combined last name fits the database limit.
+    if (mb_strlen($lastName) > 50) {
         return back()
             ->withInput()
             ->withErrors([
-                'designation' => 'Please select a personnel designation.',
+                'lname' => 'Last name and designation must not exceed 50 characters combined.',
             ]);
     }
 
-    $lastName .= ' (' . $validated['designation'] . ')';
-}
+    DB::transaction(function () use ($validated, $id, $selectedRole, $lastName) {
 
-// Ensure the combined last name fits the database limit.
-if (mb_strlen($lastName) > 50) {
-    return back()
-        ->withInput()
-        ->withErrors([
-            'lname' => 'Last name and designation must not exceed 50 characters combined.',
-        ]);
-}
+        $user = User::with('role')
+            ->lockForUpdate()
+            ->findOrFail($id);
 
-$user->fname = $validated['fname'];
-$user->lname = $lastName;
-$user->email = $validated['email'];
-$user->role_id = $validated['role_id'];
+        // Protect superadmin accounts.
+        abort_if(
+            $user->role?->name === 'superadmin',
+            403,
+            'Super Admin accounts cannot be modified here.'
+        );
 
+        $oldRole = $user->role?->name;
 
-    if (!empty($validated['password'])) {
-        $user->password = Hash::make($validated['password']);
-    }
+        // Update account information.
+        $user->fname = $validated['fname'];
+        $user->lname = $lastName;
+        $user->email = $validated['email'];
+        $user->role_id = $selectedRole->id;
 
-    $user->save();
+        if (!empty($validated['password'])) {
+            $user->password = Hash::make($validated['password']);
+        }
+
+        $user->save();
+
+        // If personnel becomes a non-personnel account,
+        // remove active assignments and return requests to Pending.
+        if ($oldRole === 'personnel' && $selectedRole->name !== 'personnel') {
+
+            $activeRequests = MaintenanceRequest::where('assigned_to', $user->id)
+                ->whereIn('status', ['approved', 'in_progress'])
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($activeRequests as $maintenance) {
+
+                $oldStatus = $maintenance->status;
+
+                $maintenance->assigned_to = null;
+                $maintenance->assigned_by = null;
+                $maintenance->assigned_at = null;
+                $maintenance->status = 'pending';
+
+                $maintenance->save();
+
+                // Record status change.
+                RequestLog::create([
+                    'request_id' => $maintenance->id,
+                    'status' => 'pending',
+                    'action' => 'status_update',
+                    'remarks' => 'Request returned to Pending because the assigned personnel account was changed to a non-personnel role.',
+                    'updated_by' => auth()->id(),
+                ]);
+
+                // Record assignment removal.
+                RequestLog::create([
+                    'request_id' => $maintenance->id,
+                    'status' => 'pending',
+                    'action' => 'assignment',
+                    'remarks' => "Personnel assignment removed. Previous personnel: {$user->fname} {$user->lname}. Previous status: " . str_replace('_', ' ', $oldStatus) . ".",
+                    'updated_by' => auth()->id(),
+                ]);
+
+                // Preserve RequestAssignment history.
+            }
+        }
+    });
 
     return redirect()
         ->route('acc_superadmin')
-        ->with('success', 'Account updated successfully.');
+        ->with('success', 'Account updated successfully. Any active assignments affected by the role change have been returned to Pending.');
 }
+
 
     
+
 public function delete_account($id)
 {
-    $user = User::with('role')->findOrFail($id);
-
-    // Prevent archiving your own account.
-    abort_if(
-        auth()->id() == $user->id,
-        403,
-        'You cannot archive your own account.'
+    // Only authorized super administrators can archive accounts.
+    abort_unless(
+        auth()->check() &&
+        auth()->user()->role?->name === 'superadmin',
+        403
     );
 
-    // Protect all superadmin accounts.
-    abort_if(
-        $user->role?->name === 'superadmin',
-        403,
-        'Super Admin accounts cannot be archived.'
-    );
+    DB::transaction(function () use ($id) {
 
-    $user->delete();
+        $user = User::with('role')
+            ->lockForUpdate()
+            ->findOrFail($id);
 
-    return redirect()->route('acc_superadmin')
-        ->with('success', 'Account archived successfully.');
+        // Prevent archiving your own account.
+        abort_if(
+            auth()->id() == $user->id,
+            403,
+            'You cannot archive your own account.'
+        );
+
+        // Protect all superadmin accounts.
+        abort_if(
+            $user->role?->name === 'superadmin',
+            403,
+            'Super Admin accounts cannot be archived.'
+        );
+
+        // Handle active assignments if the account belongs to personnel.
+        if ($user->role?->name === 'personnel') {
+
+            $activeRequests = MaintenanceRequest::where('assigned_to', $user->id)
+                ->whereIn('status', ['approved', 'in_progress'])
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($activeRequests as $maintenance) {
+
+                $oldStatus = $maintenance->status;
+
+                // Remove assignment and return request to Pending.
+                $maintenance->assigned_to = null;
+                $maintenance->assigned_by = null;
+                $maintenance->assigned_at = null;
+                $maintenance->status = 'pending';
+
+                $maintenance->save();
+
+                // Record status change.
+                RequestLog::create([
+                    'request_id' => $maintenance->id,
+                    'status' => 'pending',
+                    'action' => 'status_update',
+                    'remarks' => 'Request returned to Pending because the assigned personnel account was archived.',
+                    'updated_by' => auth()->id(),
+                ]);
+
+                // Record assignment removal.
+                RequestLog::create([
+                    'request_id' => $maintenance->id,
+                    'status' => 'pending',
+                    'action' => 'assignment',
+                    'remarks' => "Personnel assignment removed due to account archiving. Previous personnel: {$user->fname} {$user->lname}. Previous status: " . str_replace('_', ' ', $oldStatus) . ".",
+                    'updated_by' => auth()->id(),
+                ]);
+            }
+        }
+
+        // Preserve completed requests and their original personnel attribution.
+        // Laravel soft delete keeps the user record in the database.
+        $user->delete();
+    });
+
+    return redirect()
+        ->route('acc_superadmin')
+        ->with('success', 'Account archived successfully. Active maintenance assignments have been returned to Pending.');
 }
+
 
 }

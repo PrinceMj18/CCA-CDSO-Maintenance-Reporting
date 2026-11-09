@@ -67,9 +67,9 @@
 
             @foreach($filters as $key => $label)
                 <option value="{{ $key }}"
-                    {{ $currentStatus === $key ? 'selected' : '' }}>
-                    {{ $label }}
-                </option>
+    {{ $currentStatus === $key ? 'selected' : '' }}>
+    {{ $label }} ({{ $statusCounts[$key] ?? 0 }})
+</option>
             @endforeach
         </select>
 

@@ -382,11 +382,11 @@
         <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
             <h2 class="text-sm font-bold text-gray-800 dark:text-white">Request Management</h2>
             <p class="mt-1 text-xs text-gray-500">
-                Admins can reassign active requests at any time. Clear the selected personnel and save to pull back the request and return it to Pending.
+                You can assign multiple requests to the same personnel. They can hold several approved assignments, but can only work on one request at a time. Use Pull Back Assignment to withdraw this request and return it to Pending.
             </p>
         </div>
 
-        <form method="POST" action="{{ route('updateRequest.admin', $requestData->id) }}" class="p-5">
+        <form id="requestManagementForm" method="POST" action="{{ route('updateRequest.admin', $requestData->id) }}" class="p-5">
             @csrf
             @method('PUT')
             <input type="hidden" name="action" value="save" id="requestAction">
@@ -419,8 +419,15 @@
                             {{ $personnelAssignmentDisabled ? 'disabled' : '' }}>
                         <option value="">Select personnel</option>
                         @foreach($personnels as $person)
-                            <option value="{{ $person->id }}" @selected($currentAssignment?->id === $person->id)>
-                                {{ $person->fname }} {{ $person->lname }}
+                            @php
+                                $personnelUnavailable = $activePersonnelIds->contains($person->id);
+                                $isCurrentAssignee = $currentAssignment?->id === $person->id;
+                            @endphp
+                            <option
+                                value="{{ $person->id }}"
+                                @selected($isCurrentAssignee)
+                            >
+                                {{ $person->fname }} {{ $person->lname }}{{ $personnelUnavailable && !$isCurrentAssignee ? ' — Currently in task (can receive another assignment)' : '' }}
                             </option>
                         @endforeach
                     </select>
@@ -439,24 +446,31 @@
                                 class="min-w-0 w-full border-0 bg-transparent py-3 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-0 dark:text-white"
                                 {{ $personnelAssignmentDisabled ? 'disabled' : '' }}
                             >
-                            <button type="button" id="clearPersonnel"
-                                    class="shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-gray-500 hover:bg-gray-200 hover:text-gray-800 dark:text-gray-300 dark:hover:bg-gray-600"
-                                    {{ $personnelAssignmentDisabled ? 'disabled' : '' }}>
-                                Clear
-                            </button>
                         </div>
 
                         <div id="personnelOptions"
                              class="absolute z-30 mt-1 hidden max-h-52 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-600 dark:bg-gray-800">
                             @foreach($personnels as $person)
+                                @php
+                                    $personnelUnavailable = $activePersonnelIds->contains($person->id);
+                                    $isCurrentAssignee = $currentAssignment?->id === $person->id;
+                                @endphp
                                 <button
                                     type="button"
                                     class="personnel-option block w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
                                     data-value="{{ $person->id }}"
                                     data-search="{{ strtolower($person->fname.' '.$person->lname) }}"
                                     data-label="{{ $person->fname }} {{ $person->lname }}"
+                                    data-disabled="0"
                                 >
-                                    <span class="block font-medium">{{ $person->fname }} {{ $person->lname }}</span>
+                                    <span class="flex items-center justify-between gap-3">
+                                        <span class="font-medium">{{ $person->fname }} {{ $person->lname }}</span>
+                                        @if($personnelUnavailable && !$isCurrentAssignee)
+                                            <span class="shrink-0 rounded-full bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">Currently in task</span>
+                                        @elseif($isCurrentAssignee)
+                                            <span class="shrink-0 rounded-full bg-[#607844]/10 px-2 py-1 text-[10px] font-semibold text-[#607844] dark:text-[#a9c18e]">Current assignee</span>
+                                        @endif
+                                    </span>
                                 </button>
                             @endforeach
                             <p id="noPersonnelResults" class="hidden px-4 py-3 text-sm text-gray-400">
@@ -464,13 +478,13 @@
                             </p>
                         </div>
                     </div>
-                    <p class="mt-1.5 text-xs text-gray-400">Search by name or designation. Select another person to reassign, or choose Clear and save to return the request to Pending.</p>
+                    <p class="mt-1.5 text-xs text-gray-400">Personnel marked “Currently in task” can still receive this assignment. They will start it after finishing their current In Progress request. Use Pull Back Assignment to remove the current assignee and return this request to Pending.</p>
                 </div>
 
                 <div class="md:col-span-3">
                     <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
                         Remarks / comments
-                        <span class="font-normal text-gray-400">— optional; can be added without changing status</span>
+                        <span class="font-normal text-gray-400">— optional for updates; required when pulling back an assignment</span>
                     </label>
                     <textarea name="remarks" rows="3"
                               placeholder="Add a note about this request, assignment, instruction, or decision..."
@@ -488,12 +502,6 @@
     Reject Request
 </button>
 
-<button
-    type="submit"
-    onclick="document.getElementById('requestAction').value = 'save'"
-    class="px-4 py-2.5 rounded-xl border border-green-200 bg-green-50 text-green-700 text-sm font-semibold hover:bg-green-100">
-    Save Remarks
-</button>
         <button
             type="submit"
             onclick="document.getElementById('requestAction').value = 'approve'"
@@ -502,6 +510,15 @@
         </button>
 
     @else
+
+        @if(in_array($requestData->status, ['approved', 'in_progress'], true) && $currentAssignment)
+            <button
+                type="button"
+                id="openPullBackModal"
+                class="px-4 py-2.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 text-sm font-semibold hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
+                Pull Back Assignment
+            </button>
+        @endif
 
         <button
             type="submit"
@@ -513,6 +530,31 @@
     @endif
 </div>
         </form>
+
+        {{-- Custom confirmation modal for pulling back an assignment. --}}
+        <div id="pullBackConfirmationModal" class="no-print fixed inset-0 z-[100] hidden items-center justify-center bg-gray-950/60 px-4 py-6" aria-hidden="true">
+            <div class="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 dark:bg-gray-800" role="dialog" aria-modal="true" aria-labelledby="pullBackModalTitle" aria-describedby="pullBackModalDescription">
+                <div class="flex items-start gap-4 border-b border-gray-100 px-5 py-5 dark:border-gray-700">
+                    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                            <path d="M12 9v4m0 4h.01M10.3 3.9 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3l-7.5-13.1a2 2 0 0 0-3.4 0Z" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <h3 id="pullBackModalTitle" class="text-base font-bold text-gray-900 dark:text-white">Pull back this assignment?</h3>
+                        <p id="pullBackModalDescription" class="mt-1 text-sm leading-6 text-gray-600 dark:text-gray-300">This request will return to <strong>Pending</strong>, and the currently assigned personnel will be released. The assignment action and your reason will remain in the activity history.</p>
+                    </div>
+                </div>
+                <div class="px-5 py-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Reason provided</p>
+                    <p id="pullBackReasonPreview" class="mt-1.5 whitespace-pre-wrap break-words rounded-xl bg-gray-50 px-3 py-3 text-sm text-gray-700 dark:bg-gray-700/70 dark:text-gray-200">No reason provided.</p>
+                </div>
+                <div class="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50 px-5 py-4 sm:flex-row sm:justify-end dark:border-gray-700 dark:bg-gray-800">
+                    <button type="button" id="cancelPullBack" class="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">Cancel</button>
+                    <button type="button" id="confirmPullBack" class="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">Yes, Pull Back Assignment</button>
+                </div>
+            </div>
+        </div>
     </section>
 
     <!-- Activity history -->
@@ -726,10 +768,9 @@
         const searchInput = document.getElementById('personnelSearch');
         const select = document.getElementById('personnelSelect');
         const optionsPanel = document.getElementById('personnelOptions');
-        const clearButton = document.getElementById('clearPersonnel');
         const noResults = document.getElementById('noPersonnelResults');
 
-        if (!picker || !searchInput || !select || !optionsPanel || !clearButton) return;
+        if (!picker || !searchInput || !select || !optionsPanel) return;
 
         const options = Array.from(optionsPanel.querySelectorAll('.personnel-option'));
 
@@ -760,19 +801,13 @@
 
         options.forEach(option => {
             option.addEventListener('click', () => {
+                if (option.disabled || option.dataset.disabled === '1') return;
+
                 select.value = option.dataset.value;
                 searchInput.value = option.dataset.label;
                 closeOptions();
                 select.dispatchEvent(new Event('change', { bubbles: true }));
             });
-        });
-
-        clearButton.addEventListener('click', () => {
-            select.value = '';
-            searchInput.value = '';
-            filterOptions();
-            searchInput.focus();
-            select.dispatchEvent(new Event('change', { bubbles: true }));
         });
 
         document.addEventListener('click', event => {
@@ -781,6 +816,81 @@
 
         searchInput.addEventListener('keydown', event => {
             if (event.key === 'Escape') closeOptions();
+        });
+    })();
+</script>
+
+
+<script>
+    (() => {
+        const openButton = document.getElementById('openPullBackModal');
+        const modal = document.getElementById('pullBackConfirmationModal');
+        const cancelButton = document.getElementById('cancelPullBack');
+        const confirmButton = document.getElementById('confirmPullBack');
+        const reasonField = document.querySelector('#requestManagementForm textarea[name="remarks"]');
+        const reasonPreview = document.getElementById('pullBackReasonPreview');
+        const actionField = document.getElementById('requestAction');
+        const form = document.getElementById('requestManagementForm');
+
+        if (!openButton || !modal || !cancelButton || !confirmButton || !reasonField || !reasonPreview || !actionField || !form) return;
+
+        let previouslyFocusedElement = null;
+
+        const closeModal = () => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('overflow-hidden');
+            previouslyFocusedElement?.focus();
+        };
+
+        openButton.addEventListener('click', () => {
+            const reason = reasonField.value.trim();
+            if (!reason) {
+                reasonField.focus();
+                reasonField.classList.add('border-red-500', 'ring-1', 'ring-red-500');
+                reasonField.setCustomValidity('Please provide a reason for pulling back this assignment.');
+                reasonField.reportValidity();
+                return;
+            }
+
+            reasonField.setCustomValidity('');
+            reasonField.classList.remove('border-red-500', 'ring-1', 'ring-red-500');
+            reasonPreview.textContent = reason;
+            previouslyFocusedElement = document.activeElement;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('overflow-hidden');
+            confirmButton.focus();
+        });
+
+        reasonField.addEventListener('input', () => {
+            reasonField.setCustomValidity('');
+            reasonField.classList.remove('border-red-500', 'ring-1', 'ring-red-500');
+        });
+
+        cancelButton.addEventListener('click', closeModal);
+        modal.addEventListener('click', event => {
+            if (event.target === modal) closeModal();
+        });
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+        });
+
+        confirmButton.addEventListener('click', () => {
+            if (!reasonField.value.trim()) {
+                closeModal();
+                reasonField.focus();
+                reasonField.setCustomValidity('Please provide a reason for pulling back this assignment.');
+                reasonField.reportValidity();
+                return;
+            }
+
+            actionField.value = 'pull_back';
+            confirmButton.disabled = true;
+            confirmButton.textContent = 'Processing...';
+            form.requestSubmit();
         });
     })();
 </script>

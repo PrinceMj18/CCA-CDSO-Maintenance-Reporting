@@ -32,25 +32,26 @@ class PersonnelController extends Controller
             ->where('priority', 'high')
             ->count();
 
-        // Show only work that still needs attention, with active work first,
-        // then high-priority work and older requests.
+        // Keep every active assignment visible. Personnel may have multiple
+        // approved requests queued, but only one request may be In Progress.
         $workQueue = MaintenanceRequest::with('user')
             ->where('assigned_to', $userId)
             ->whereIn('status', ['approved', 'in_progress'])
             ->orderByRaw("CASE WHEN status = 'in_progress' THEN 0 ELSE 1 END")
             ->orderByRaw("CASE WHEN priority = 'high' THEN 0 WHEN priority = 'medium' THEN 1 ELSE 2 END")
             ->orderBy('created_at')
-            ->limit(8)
             ->get();
 
-        // Recent history is limited to requests currently assigned to this person.
-        $recentActivity = RequestLog::with(['request', 'updatedBy'])
-            ->whereHas('request', function ($query) use ($userId) {
-                $query->where('assigned_to', $userId);
-            })
-            ->latest()
-            ->limit(6)
-            ->get();
+        $currentWork = $workQueue->firstWhere('status', 'in_progress');
+
+        // Recent Updates follows the current task, not every queued or completed request.
+        $recentActivity = $currentWork
+            ? RequestLog::with(['request', 'updatedBy'])
+                ->where('request_id', $currentWork->id)
+                ->latest()
+                ->limit(10)
+                ->get()
+            : collect();
 
         return view('pages.dashboard.index', compact(
             'approved',
@@ -59,6 +60,7 @@ class PersonnelController extends Controller
             'activeCount',
             'highPriorityCount',
             'workQueue',
+            'currentWork',
             'recentActivity'
         ));
     }
@@ -116,8 +118,21 @@ public function maintenanceRequest(Request $request)
     // Always display 5 records per page.
     $perPage = 5;
 
+    if ($activeTab === 'all') {
+        // Show the current task first, followed by approved tasks waiting in queue.
+        $query->orderByRaw("CASE WHEN status = 'in_progress' THEN 0 ELSE 1 END")
+            ->orderByRaw("CASE WHEN priority = 'high' THEN 0 WHEN priority = 'medium' THEN 1 ELSE 2 END")
+            ->orderBy('created_at');
+    } elseif ($activeTab === 'approved') {
+        // Prioritize higher-priority tasks in the waiting queue.
+        $query->orderByRaw("CASE WHEN priority = 'high' THEN 0 WHEN priority = 'medium' THEN 1 ELSE 2 END")
+            ->orderBy('created_at');
+    } else {
+        // Completed history is shown newest first.
+        $query->latest();
+    }
+
     $requests = $query
-        ->latest()
         ->paginate($perPage)
         ->withQueryString();
 
@@ -184,9 +199,18 @@ public function viewRequest($id)
 
     $inventoryItems = InventoryItem::orderBy('name')->get();
 
+    $currentInProgress = MaintenanceRequest::where('assigned_to', auth()->id())
+        ->where('status', 'in_progress')
+        ->where('id', '!=', $requestData->id)
+        ->first();
+
+    $hasOtherInProgress = $currentInProgress !== null;
+
     return view('personnel.view_request_personnel', compact(
         'requestData',
-        'inventoryItems'
+        'inventoryItems',
+        'hasOtherInProgress',
+        'currentInProgress'
     ));
 }
 
@@ -263,6 +287,42 @@ public function updateRequest(Request $request, $id)
         $itemIds,
         $noMaterialsUsed
     ) {
+        // Serialize start attempts for this personnel account. This prevents
+        // two browser tabs/requests from starting two jobs at the same time.
+        User::whereKey(Auth::id())->lockForUpdate()->firstOrFail();
+
+        $lockedMaintenance = MaintenanceRequest::whereKey($maintenance->id)
+            ->lockForUpdate()
+            ->firstOrFail();
+
+        if ((int) $lockedMaintenance->assigned_to !== (int) Auth::id()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'status' => 'This request is no longer assigned to your account. Refresh the page.',
+            ]);
+        }
+
+        if ($lockedMaintenance->status !== $oldStatus) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'status' => 'This request has changed since you opened it. Refresh the page before updating it.',
+            ]);
+        }
+
+        if ($newStatus === 'in_progress' && $oldStatus === 'approved') {
+            $alreadyWorking = MaintenanceRequest::where('assigned_to', Auth::id())
+                ->where('status', 'in_progress')
+                ->where('id', '!=', $lockedMaintenance->id)
+                ->exists();
+
+            if ($alreadyWorking) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'status' => 'You already have a task in progress. Complete your current task before starting another assigned request.',
+                ]);
+            }
+        }
+
+        // Use the locked record for all changes made in this transaction.
+        $maintenance = $lockedMaintenance;
+
         $statusChanged = $oldStatus !== $newStatus;
         $logRemarks = $remarks;
 
