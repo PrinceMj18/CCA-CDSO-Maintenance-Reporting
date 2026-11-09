@@ -61,10 +61,6 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('/archives/requests/admin/{id}/restore', [ArchiveController::class, 'restoreRequest'])->name('admin.archives.requests.restore');
     Route::post('/maintenance-request/admin/{id}/archive', [ArchiveController::class, 'archiveRequest'])->name('admin.requests.archive');
     Route::get('/dashboard/admin/analytics', [AdminController::class, 'dashboardAnalytics'])->name('adminDashboard.analytics');
-    Route::get('/manage-account/admin', [AdminController::class, 'accManagement'])->name('accountsmanagement');
-    Route::get('/edit-account/admin/{id}', [AdminController::class, 'editAccount'])->name('edit-account.admin');
-    Route::put('/update-account/admin/{id}', [AdminController::class, 'updateAccount'])->name('update-account.admin');
-    Route::delete('/delete-account/admin/{id}', [AdminController::class, 'destroyAccount'])->name('accounts.destroy');
 
     Route::get('/maintenance-request/admin', [AdminController::class, 'maintenanceRequest'])->name('maintenanceRequest.admin');
     Route::get('/view-request/admin/{id}', [AdminController::class, 'viewRequest'])

@@ -60,7 +60,7 @@ $personnelRoleId = $roles->firstWhere('name', 'personnel')?->id;
 
     <!-- Update Form -->
     <form
-        action="{{ route('update-account.admin', $user->id) }}"
+        action="{{ route('update_account', $user->id) }}"
         method="POST"
 x-data="{
     showPassword: false,
