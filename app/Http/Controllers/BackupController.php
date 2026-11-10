@@ -66,6 +66,7 @@ class BackupController extends Controller
             '--port=' . $connection['port'],
             '--username=' . $connection['username'],
             '--dbname=' . $connection['database'],
+            '--schema=public',
             '--no-owner',
             '--no-privileges',
             '--format=custom',
@@ -112,8 +113,8 @@ class BackupController extends Controller
                 . "Database file: database.sql\n"
                 . "Uploaded public files: storage/\n\n"
                 . "Restore database.sql using PostgreSQL psql with ON_ERROR_STOP enabled. "
-                . "The SQL file was generated with DROP statements for objects being backed up. "
-                . "Restore only into the intended database.\n"
+                . "The database backup contains the application public schema only.\n"
+                . "Restore only into the intended Supabase database.\n"
                 . "Copy the contents of storage/ into Laravel storage/app/public.\n\n"
                 . "Note: This package backs up the application's connected database and Laravel public storage files. "
                 . "It does not export Supabase platform-managed Auth users, Storage metadata, project settings, "
@@ -218,45 +219,47 @@ class BackupController extends Controller
             $this->assertNonEmptyFile($databaseFile);
 
             if ($isCustomDump) {
-    if ($connection['driver'] !== 'pgsql') {
-        throw new \RuntimeException(
-            'PostgreSQL custom dumps cannot be restored into MySQL.'
-        );
-    }
+                if ($connection['driver'] !== 'pgsql') {
+                    throw new \RuntimeException(
+                        'PostgreSQL custom dumps cannot be restored into MySQL.'
+                    );
+                }
 
-    // Supabase owns these platform-managed PostgREST event triggers. Exclude
-    // them so pg_restore never tries to drop or recreate them.
-    $restoreList = $databaseFile . '.restore.list';
+                // Restore only application objects in public. Exclude the public
+                // schema container itself so we never drop/recreate Supabase's
+                // schema or its grants. Also exclude any managed PostgREST triggers.
+                $restoreList = $restoreDirectory . DIRECTORY_SEPARATOR . 'restore.list';
 
-    try {
-        $this->createFilteredPostgresRestoreList(
-            $databaseFile,
-            $restoreList,
-            $connection
-        );
+                try {
+                    $this->createFilteredPostgresRestoreList(
+                        $databaseFile,
+                        $restoreList,
+                        $connection
+                    );
 
-        $this->runPostgresUtility('pg_restore', [
-            '--host=' . $connection['host'],
-            '--port=' . $connection['port'],
-            '--username=' . $connection['username'],
-            '--dbname=' . $connection['database'],
-            '--clean',
-            '--if-exists',
-            '--no-owner',
-            '--no-privileges',
-            '--exit-on-error',
-            '--single-transaction',
-            '--use-list=' . $restoreList,
-            $databaseFile,
-        ], $connection);
-    } finally {
-        if (is_file($restoreList)) {
-            @unlink($restoreList);
-        }
-    }
-} else {
-    $this->restoreSqlBackup($connection, $databaseFile);
-}
+                    $this->runPostgresUtility('pg_restore', [
+                        '--host=' . $connection['host'],
+                        '--port=' . $connection['port'],
+                        '--username=' . $connection['username'],
+                        '--dbname=' . $connection['database'],
+                        '--schema=public',
+                        '--clean',
+                        '--if-exists',
+                        '--no-owner',
+                        '--no-privileges',
+                        '--exit-on-error',
+                        '--single-transaction',
+                        '--use-list=' . $restoreList,
+                        $databaseFile,
+                    ], $connection);
+                } finally {
+                    if (is_file($restoreList)) {
+                        @unlink($restoreList);
+                    }
+                }
+            } else {
+                $this->restoreSqlBackup($connection, $databaseFile);
+            }
 
             if ($extractedStorage && File::isDirectory($extractedStorage)) {
                 $livePublicStorage = storage_path('app/public');
@@ -373,9 +376,8 @@ private function createSqlBackup(array $connection, string $outputPath): void
         return;
     }
 
-    // Build a custom archive first, then render it as SQL using a filtered
-    // TOC list. This prevents Supabase-managed PostgREST event triggers
-    // from being included in SQL and ZIP backups.
+    // Build a PostgreSQL archive limited to the application's public schema,
+    // then render it as portable SQL without dropping/recreating the schema.
     $temporaryDump = $outputPath . '.temporary.dump';
     $restoreList = $temporaryDump . '.list';
 
@@ -385,6 +387,7 @@ private function createSqlBackup(array $connection, string $outputPath): void
             '--port=' . $connection['port'],
             '--username=' . $connection['username'],
             '--dbname=' . $connection['database'],
+            '--schema=public',
             '--no-owner',
             '--no-privileges',
             '--format=custom',
@@ -400,6 +403,7 @@ private function createSqlBackup(array $connection, string $outputPath): void
         );
 
         $this->runPostgresUtility('pg_restore', [
+            '--schema=public',
             '--clean',
             '--if-exists',
             '--no-owner',
@@ -503,8 +507,9 @@ private function findMySqlUtility(string $utility): ?string
 }
 
     /**
-     * Generate a pg_restore TOC list excluding Supabase-managed
-     * PostgREST event triggers.
+     * Create a pg_restore TOC list containing only application objects.
+     * The public schema container itself is excluded so it is never dropped,
+     * and Supabase-managed PostgREST event triggers are excluded by name.
      */
     private function createFilteredPostgresRestoreList(
         string $archivePath,
@@ -525,33 +530,39 @@ private function findMySqlUtility(string $utility): ?string
                 'PGSSLMODE' => $connection['sslmode'],
             ]
         );
-
         $process->setTimeout(3600);
         $process->mustRun();
 
-        $listContents = $process->getOutput();
+        $lines = preg_split('/\r\n|\r|\n/', $process->getOutput());
+        $filtered = [];
 
-        // pg_restore list entries are one object per line. Exclude only the
-        // Supabase-managed PostgREST event triggers, not other event triggers.
-        $filteredContents = preg_replace(
-            '/^.*\bEVENT TRIGGER\b.*\bpgrst_(?:drop_watch|ddl_watch)\b.*(?:\r\n|\n|\r|$)/mi',
-            '',
-            $listContents
-        );
+        foreach ($lines as $line) {
+            // TOC entries use forms such as "SCHEMA - public" and
+            // "EVENT TRIGGER - pgrst_ddl_watch". Match the trigger names
+            // independently of entry formatting to avoid missing them.
+            if (preg_match('/\bSCHEMA\s+-\s+public\b|\bCOMMENT\s+-\s+SCHEMA\s+public\b/i', $line)) {
+                continue;
+            }
 
-        if (!is_string($filteredContents) || trim($filteredContents) === '') {
+            if (preg_match('/\bpgrst_(?:drop_watch|ddl_watch)\b/i', $line)) {
+                continue;
+            }
+
+            $filtered[] = $line;
+        }
+
+        $filteredContents = implode(PHP_EOL, $filtered);
+        if (trim($filteredContents) === '') {
             throw new \RuntimeException('Unable to create a valid PostgreSQL restore list.');
         }
 
-        File::put($listPath, $filteredContents);
+        File::put($listPath, $filteredContents . PHP_EOL);
     }
 
     /**
-     * Remove SQL statements that target only Supabase-managed
-     * PostgREST event triggers.
-     *
-     * The input is streamed line by line so large SQL backups do not need
-     * to be loaded entirely into PHP memory.
+     * Sanitize older plain-SQL backups. New backups already contain only the
+     * public schema and exclude the schema container and managed event triggers.
+     * This compatibility pass removes only those specific legacy statements.
      */
     private function removeManagedEventTriggerStatements(
         string $inputPath,
@@ -568,34 +579,61 @@ private function findMySqlUtility(string $utility): ?string
             throw new \RuntimeException('Unable to create the temporary SQL restore file.');
         }
 
-        $skipStatement = false;
+        $insideTargetStatement = false;
+        $skipCurrentStatement = false;
+        $statementBuffer = '';
 
         try {
             while (($line = fgets($input)) !== false) {
-                if (!$skipStatement && preg_match(
-                    '/^\s*(?:DROP\s+EVENT\s+TRIGGER(?:\s+IF\s+EXISTS)?|CREATE\s+EVENT\s+TRIGGER|ALTER\s+EVENT\s+TRIGGER|COMMENT\s+ON\s+EVENT\s+TRIGGER)\s+"?pgrst_(?:drop_watch|ddl_watch)"?(?=\s|;|$)/i',
-                    $line
-                )) {
-                    // Event-trigger DDL is a single SQL statement, though
-                    // CREATE statements may continue across multiple lines.
-                    $skipStatement = !str_contains($line, ';');
-                    continue;
-                }
+                if (!$insideTargetStatement) {
+                    $isEventTriggerDdl = preg_match(
+                        '/^\s*(?:DROP|CREATE|ALTER)\s+EVENT\s+TRIGGER\b|^\s*COMMENT\s+ON\s+EVENT\s+TRIGGER\b/i',
+                        $line
+                    );
+                    $isPublicSchemaDdl = preg_match(
+                        '/^\s*(?:DROP\s+SCHEMA(?:\s+IF\s+EXISTS)?|CREATE\s+SCHEMA(?:\s+IF\s+NOT\s+EXISTS)?|ALTER\s+SCHEMA)\s+"?public"?(?=\s|;|$)|^\s*COMMENT\s+ON\s+SCHEMA\s+"?public"?(?=\s|;|$)/i',
+                        $line
+                    );
 
-                if ($skipStatement) {
-                    if (str_contains($line, ';')) {
-                        $skipStatement = false;
+                    if ($isEventTriggerDdl || $isPublicSchemaDdl) {
+                        $insideTargetStatement = true;
+                        $skipCurrentStatement = (bool) $isPublicSchemaDdl
+                            || (bool) preg_match('/\bpgrst_(?:drop_watch|ddl_watch)\b/i', $line);
+                        $statementBuffer = '';
+                    } else {
+                        if (fwrite($output, $line) === false) {
+                            throw new \RuntimeException('Unable to write the temporary SQL restore file.');
+                        }
+                        continue;
                     }
-                    continue;
                 }
 
-                if (fwrite($output, $line) === false) {
-                    throw new \RuntimeException('Unable to write the temporary SQL restore file.');
+                $statementBuffer .= $line;
+                if (preg_match('/\bpgrst_(?:drop_watch|ddl_watch)\b/i', $line)) {
+                    $skipCurrentStatement = true;
+                }
+
+                // These DDL statements are terminated by a semicolon and do not
+                // contain function bodies, so buffering them line-by-line is safe.
+                if (str_contains($line, ';')) {
+                    if (!$skipCurrentStatement && fwrite($output, $statementBuffer) === false) {
+                        throw new \RuntimeException('Unable to write the temporary SQL restore file.');
+                    }
+
+                    $insideTargetStatement = false;
+                    $skipCurrentStatement = false;
+                    $statementBuffer = '';
                 }
             }
 
             if (!feof($input)) {
                 throw new \RuntimeException('An error occurred while reading the SQL backup file.');
+            }
+
+            if ($insideTargetStatement && !$skipCurrentStatement && $statementBuffer !== '') {
+                if (fwrite($output, $statementBuffer) === false) {
+                    throw new \RuntimeException('Unable to write the temporary SQL restore file.');
+                }
             }
         } finally {
             fclose($input);
