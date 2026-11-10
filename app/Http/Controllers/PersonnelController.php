@@ -99,20 +99,18 @@ public function maintenanceRequest(Request $request)
         $query->where('category', $request->input('category'));
     }
 
-    $activeTab = $request->input('tab', 'all');
+    
+$activeTab = $request->input('tab', 'approved');
 
-    $validTabs = ['all', 'approved', 'in_progress', 'completed'];
+$validTabs = ['approved', 'in_progress', 'completed'];
 
-    if (!in_array($activeTab, $validTabs, true)) {
-        $activeTab = 'all';
-    }
-
-    // Apply status filtering before pagination.
-    if ($activeTab === 'all') {
-    $query->whereIn('status', ['approved', 'in_progress']);
-} else {
-    $query->where('status', $activeTab);
+if (!in_array($activeTab, $validTabs, true)) {
+    $activeTab = 'approved';
 }
+
+// Display only records matching the selected status.
+$query->where('status', $activeTab);
+
 
     // Always display 5 records per page.
     $perPage = 5;

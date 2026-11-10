@@ -44,9 +44,9 @@ class MaintenanceRequest extends Model
 
     // Assigned personnel
     public function assignedPersonnel()
-    {
-        return $this->belongsTo(User::class, 'assigned_to');
-    }
+{
+    return $this->belongsTo(User::class, 'assigned_to')->withTrashed();
+}
     public function assignedBy()
     {
         return $this->belongsTo(User::class, 'assigned_by');

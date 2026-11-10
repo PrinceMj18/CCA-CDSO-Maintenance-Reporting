@@ -22,9 +22,9 @@ protected $casts = [
 
 
     public function personnel()
-    {
-        return $this->belongsTo(User::class, 'personnel_id');
-    }
+{
+    return $this->belongsTo(User::class, 'personnel_id')->withTrashed();
+}
 
     public function maintenanceRequest()
     {

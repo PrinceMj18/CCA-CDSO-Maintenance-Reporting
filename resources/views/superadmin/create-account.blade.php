@@ -271,7 +271,7 @@
         <div class="mt-6 flex flex-col-reverse gap-3 border-t border-gray-100 pt-5 dark:border-gray-700 sm:flex-row sm:justify-end">
 
             <a
-                href="{{ auth()->user()->role->name === 'superadmin' ? route('acc_superadmin') : route('accountsmanagement') }}"
+                href="{{ route('acc_superadmin') }}"
                 class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-6 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
                 Cancel
             </a>

@@ -107,16 +107,31 @@ class BackupController extends Controller
                 }
             }
 
+            // Maintenance request photos are stored separately from public storage.
+            // Include them without changing the existing storage/ backup structure.
+            $maintenanceUploads = storage_path('app/maintenance-requests');
+            if (File::isDirectory($maintenanceUploads)) {
+                foreach (File::allFiles($maintenanceUploads) as $file) {
+                    $relative = str_replace('\\', '/', substr(
+                        $file->getPathname(),
+                        strlen($maintenanceUploads) + 1
+                    ));
+                    $zip->addFile($file->getPathname(), 'maintenance-requests/' . $relative);
+                }
+            }
+
             $readme = "CCA Maintenance Reporting System Backup\n"
                 . "Created: " . now()->toDateTimeString() . "\n"
                 . "Database: " . strtoupper($connection['driver']) . "\n"
                 . "Database file: database.sql\n"
-                . "Uploaded public files: storage/\n\n"
+                . "Uploaded public files: storage/\n"
+                . "Maintenance request photos: maintenance-requests/\n\n"
                 . "Restore database.sql using PostgreSQL psql with ON_ERROR_STOP enabled. "
                 . "The database backup contains the application public schema only.\n"
                 . "Restore only into the intended Supabase database.\n"
-                . "Copy the contents of storage/ into Laravel storage/app/public.\n\n"
-                . "Note: This package backs up the application's connected database and Laravel public storage files. "
+                . "Copy the contents of storage/ into Laravel storage/app/public.\n"
+                . "Copy the contents of maintenance-requests/ into Laravel storage/app/maintenance-requests.\n\n"
+                . "Note: This package backs up the application's connected database and Laravel uploaded files. "
                 . "It does not export Supabase platform-managed Auth users, Storage metadata, project settings, "
                 . "or database roles outside the connected database privileges.\n";
             $zip->addFromString('RESTORE_README.txt', $readme);
@@ -165,6 +180,7 @@ class BackupController extends Controller
             $databaseFile = null;
             $isCustomDump = $extension === 'dump';
             $extractedStorage = null;
+            $extractedMaintenanceUploads = null;
 
             if ($extension === 'sql' || $extension === 'dump') {
                 $databaseFile = $uploaded->getRealPath();
@@ -213,6 +229,37 @@ class BackupController extends Controller
                     File::ensureDirectoryExists(dirname($destination));
                     File::put($destination, $contents);
                 }
+
+                // Stage maintenance photos separately so they are restored to
+                // storage/app/maintenance-requests, not storage/app/public.
+                $extractedMaintenanceUploads = $restoreDirectory . DIRECTORY_SEPARATOR . 'maintenance-requests';
+                for ($i = 0; $i < $zip->numFiles; $i++) {
+                    $entry = $zip->getNameIndex($i);
+                    if (!is_string($entry) || !str_starts_with($entry, 'maintenance-requests/')) {
+                        continue;
+                    }
+
+                    $relative = substr($entry, strlen('maintenance-requests/'));
+                    $normalized = str_replace('\\', '/', $relative);
+                    $segments = explode('/', $normalized);
+                    if ($normalized === '' || str_starts_with($normalized, '/') || in_array('..', $segments, true)) {
+                        continue;
+                    }
+                    if (str_ends_with($entry, '/')) {
+                        continue;
+                    }
+
+                    $contents = $zip->getFromIndex($i);
+                    if ($contents === false) {
+                        continue;
+                    }
+
+                    $destination = $extractedMaintenanceUploads . DIRECTORY_SEPARATOR
+                        . str_replace('/', DIRECTORY_SEPARATOR, $normalized);
+                    File::ensureDirectoryExists(dirname($destination));
+                    File::put($destination, $contents);
+                }
+
                 $zip->close();
             }
 
@@ -266,6 +313,13 @@ class BackupController extends Controller
                 File::ensureDirectoryExists($livePublicStorage);
                 // Merge backed-up files without deleting unrelated files already on the server.
                 File::copyDirectory($extractedStorage, $livePublicStorage);
+            }
+
+            if ($extractedMaintenanceUploads && File::isDirectory($extractedMaintenanceUploads)) {
+                $liveMaintenanceUploads = storage_path('app/maintenance-requests');
+                File::ensureDirectoryExists($liveMaintenanceUploads);
+                // Merge backed-up photos without deleting unrelated files already on the server.
+                File::copyDirectory($extractedMaintenanceUploads, $liveMaintenanceUploads);
             }
 
             return back()->with(
