@@ -72,7 +72,9 @@
                     </div>
                 </div>
 
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-5 leading-relaxed">Choose the format that matches how you plan to store or restore your PostgreSQL database.</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-5 leading-relaxed">
+                    Choose a backup format for the database currently connected to this system.
+                </p>
 
                 <form x-ref="backupForm" action="{{ route('admin.backup.create') }}" method="POST">
                     @csrf
@@ -81,8 +83,8 @@
                         <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:border-[#607844]">
                             <input type="radio" name="format" value="zip" x-model="backupFormat" class="mt-1 text-[#607844] focus:ring-[#607844]">
                             <span class="min-w-0">
-                                <span class="block text-sm font-semibold text-gray-800 dark:text-gray-100">Complete Supabase Package (.zip)</span>
-                                <span class="block mt-1 text-xs text-gray-500 dark:text-gray-400">SQL database backup, uploaded maintenance images, and restore instructions.</span>
+                                <span class="block text-sm font-semibold text-gray-800 dark:text-gray-100">Complete System Backup (.zip)</span>
+                                <span class="block mt-1 text-xs text-gray-500 dark:text-gray-400">Includes the {{ strtoupper($databaseDriver ?? 'mysql') }} database backup, uploaded files, and restore instructions. Restore it to the same database type.</span>
                                 <span class="inline-block mt-2 text-[11px] font-semibold text-[#607844] dark:text-[#a8bd91]">RECOMMENDED</span>
                             </span>
                         </label>
@@ -90,8 +92,8 @@
                         <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:border-[#607844]">
                             <input type="radio" name="format" value="sql" x-model="backupFormat" class="mt-1 text-[#607844] focus:ring-[#607844]">
                             <span class="min-w-0">
-                                <span class="block text-sm font-semibold text-gray-800 dark:text-gray-100">Plain SQL (.sql)</span>
-                                <span class="block mt-1 text-xs text-gray-500 dark:text-gray-400">Portable PostgreSQL SQL script. Does not include uploaded images.</span>
+                                <span class="block text-sm font-semibold text-gray-800 dark:text-gray-100">{{ ($databaseDriver ?? 'mysql') === 'pgsql' ? 'PostgreSQL SQL Script (.sql)' : 'MySQL SQL Script (.sql)' }}</span>
+                                <span class="block mt-1 text-xs text-gray-500 dark:text-gray-400">Database records and structure only. This file is intended for the same database type and does not include uploaded files.</span>
                             </span>
                         </label>
 
@@ -99,7 +101,7 @@
                             <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:border-[#607844]">
                                 <input type="radio" name="format" value="dump" x-model="backupFormat" class="mt-1 text-[#607844] focus:ring-[#607844]">
                                 <span class="min-w-0">
-                                    <span class="block text-sm font-semibold text-gray-800 dark:text-gray-100">PostgreSQL Custom Dump (.dump)</span>
+                                    <span class="block text-sm font-semibold text-gray-800 dark:text-gray-100">PostgreSQL Custom Backup (.dump)</span>
                                     <span class="block mt-1 text-xs text-gray-500 dark:text-gray-400">Compact custom-format backup, restored with pg_restore. Does not include uploaded images.</span>
                                 </span>
                             </label>
@@ -184,7 +186,9 @@
                         </button>
                     </div>
 
-                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Accepted formats: ZIP package, SQL script, or PostgreSQL custom dump.</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        Accepted formats: ZIP package, SQL script{{ ($databaseDriver ?? 'mysql') === 'pgsql' ? ', or PostgreSQL custom dump' : '' }}.
+                    </p>
 
                     <button
                         type="button"
@@ -203,12 +207,16 @@
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-5 text-sm">
                 <div>
-                    <p class="font-medium text-gray-700 dark:text-gray-300">Backup Formats</p>
-                    <p class="mt-1 text-gray-500 dark:text-gray-400">ZIP, SQL, PostgreSQL custom dump</p>
+                    <p class="font-medium text-gray-700 dark:text-gray-300">Available Formats</p>
+                    <p class="mt-1 text-gray-500 dark:text-gray-400">
+                        ZIP and {{ strtoupper($databaseDriver ?? 'mysql') }} SQL{{ ($databaseDriver ?? 'mysql') === 'pgsql' ? ', plus PostgreSQL custom dump' : '' }}
+                    </p>
                 </div>
                 <div>
-                    <p class="font-medium text-gray-700 dark:text-gray-300">Database</p>
-                    <p class="mt-1 text-gray-500 dark:text-gray-400">PostgreSQL 17 / Supabase PostgreSQL</p>
+                    <p class="font-medium text-gray-700 dark:text-gray-300">Connected Database</p>
+                    <p class="mt-1 text-gray-500 dark:text-gray-400">
+                        {{ ($databaseDriver ?? 'mysql') === 'pgsql' ? 'PostgreSQL (deployed database)' : 'MySQL (local database)' }}
+                    </p>
                 </div>
                 <div>
                     <p class="font-medium text-gray-700 dark:text-gray-300">Included Files</p>
@@ -217,7 +225,7 @@
             </div>
 
             <p class="mt-5 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-                This backup covers the database connected to this Laravel application and files stored in storage/app/public. Supabase platform-managed Auth users, Storage service metadata, project settings, and external services are not included.
+                Backups are created from the database connected to this Laravel application. ZIP backups also include uploaded files stored by the application. SQL and ZIP database contents are specific to the database type shown above, so restore them to a matching MySQL or PostgreSQL database. Supabase platform-managed Auth users, Storage service metadata, project settings, and external services are not included.
             </p>
         </div>
     </div>
