@@ -1,8 +1,10 @@
+
 <?php
 
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -10,18 +12,25 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    // ->withMiddleware(function (Middleware $middleware) {
-    //     //
-    // })
-->withMiddleware(function ($middleware) {
-$middleware->alias([
-    'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
-    'admin' => \App\Http\Middleware\AdminMiddleware::class,
-    'user' => \App\Http\Middleware\UserMiddleware::class,
-    'personnel' => \App\Http\Middleware\PersonnelMiddleware::class,
-]);
-})
+    ->withMiddleware(function (Middleware $middleware) {
+
+        // Trust Render's reverse proxy to detect the original HTTPS request.
+        $middleware->trustProxies(
+            at: '*',
+            headers: Request::HEADER_X_FORWARDED_FOR |
+                     Request::HEADER_X_FORWARDED_HOST |
+                     Request::HEADER_X_FORWARDED_PORT |
+                     Request::HEADER_X_FORWARDED_PROTO
+        );
+
+        // Existing middleware aliases.
+        $middleware->alias([
+            'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
+            'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'user' => \App\Http\Middleware\UserMiddleware::class,
+            'personnel' => \App\Http\Middleware\PersonnelMiddleware::class,
+        ]);
+    })
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
-    
