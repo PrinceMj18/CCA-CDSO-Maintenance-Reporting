@@ -112,7 +112,7 @@ class SuperAdminController extends Controller
                 Rule::in([
                     'CDSO Head',
                     'Utility Supervisor',
-                    'Supply Officer',
+                   
                     'Office Secretary',
                     'Maintenance',
                     'Utility',
@@ -132,15 +132,9 @@ class SuperAdminController extends Controller
         $selectedRole = Role::findOrFail($validated['role_id']);
 
         $designationOptions = [
-            'CDSO Head',
-            'Utility Supervisor',
-            'Supply Officer',
-            'Office Secretary',
             'Maintenance',
             'Utility',
             'Gardener',
-            'Gardener/Utility',
-            'Team Leader',
         ];
 
         /*
@@ -363,15 +357,9 @@ class SuperAdminController extends Controller
         'designation' => [
             'nullable',
             Rule::in([
-                'CDSO Head',
-                'Utility Supervisor',
-                'Supply Officer',
-                'Office Secretary',
                 'Maintenance',
                 'Utility',
                 'Gardener',
-                'Gardener/Utility',
-                'Team Leader',
             ]),
         ],
 

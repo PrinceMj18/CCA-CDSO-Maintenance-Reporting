@@ -4,15 +4,9 @@
 
 @php
 $designationOptions = [
-    'CDSO Head',
-    'Utility Supervisor',
-    'Supply Officer',
-    'Office Secretary',
     'Maintenance',
     'Utility',
     'Gardener',
-    'Gardener/Utility',
-    'Team Leader',
 ];
 
 $storedDesignation = null;

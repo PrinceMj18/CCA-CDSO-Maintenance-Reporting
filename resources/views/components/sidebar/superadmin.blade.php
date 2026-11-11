@@ -25,7 +25,7 @@
                     Maintenance Reporting
                 </p>
                 <p class="mt-1 text-[10px] font-semibold uppercase tracking-widest text-white/60">
-                    Super Admin Portal
+                    Administrator Portal
                 </p>
             </div>
         </a>
