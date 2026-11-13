@@ -395,14 +395,21 @@
     <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
         Priority
     </label>
+    @if(in_array($requestData->status, ['completed', 'rejected'], true))
+    <div class="w-full rounded-xl border border-gray-200 bg-gray-100 px-3 py-3 text-sm font-semibold text-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300">
+        {{ ucfirst($requestData->priority) }}
+        <span class="ml-1 text-xs font-normal">(Locked)</span>
+    </div>
+@else
     <select name="priority"
             class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-800 focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-        @foreach(['low','medium','high'] as $priority)
+        @foreach(['low', 'medium', 'high'] as $priority)
             <option value="{{ $priority }}" @selected($requestData->priority === $priority)>
                 {{ ucfirst($priority) }}
             </option>
         @endforeach
     </select>
+@endif
 </div>
 
                 <div class="md:col-span-2">
